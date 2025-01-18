@@ -1,11 +1,19 @@
 const express = require("express");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
-const { Role, SecurityQuestion, Userlogin, UserQuestion } = require("../models/userModel");
+const { Role, SecurityQuestion, Userlogin, UserQuestion, ProfilePicture, Designee } = require("../models/userModel");
+const { S3Client, PutObjectCommand, DeleteObjectCommand } = require("@aws-sdk/client-s3");
+const path = require("path");
+const fs = require("fs");
+const multer = require("multer");
 const crypto = require('crypto');
 const { generateOTP, sendEmail } = require('../email/emailUtils')
 const router = express.Router();
 const otpStore = new Map();
+const s3 = require("../config/s3Client");
+const Subscription = require("../models/userSubscriptions");
+const { encryptField, decryptField } = require("../utilities/encryptionUtils");
+const { Folder, File } = require("../models/userUpload");
 
 const JWT_SECRET = crypto.randomBytes(64).toString('hex');
 const REFRESH_TOKEN_SECRET = crypto.randomBytes(64).toString('hex');
@@ -421,7 +429,6 @@ router.post("/add-membership", async (req, res) => {
       return res.status(404).json({ message: "User not found." });
     }
 
-    // Fetch the subscription details
     const subscription = await Subscription.findById(subscriptionId);
     
     if (!subscription) {
@@ -482,6 +489,26 @@ router.post("/update-password", async (req, res) => {
     res.status(500).json({ message: "Error updating password", error: error.message });
   }
 });
+router.get("/get-all-users", authenticateToken, async (req, res) => {
+  try {
+    const user_id = req.user.user_id;
+    let search=req.query.q;
+    console.log(search);
+    const user = await Userlogin.find({username: { $regex: new RegExp(search, 'i') }}); // Use user ID to find the user
+    const designee = await Designee.find({name: { $regex: new RegExp(search, 'i') }});
+    for(var i=0; i<designee.length; i++){
+      user.push({username: designee[i].name, _id: designee[i].email});
+    }
+    if (user) {
+      return res.json({ user });
+    } else {
+      return res.json({ message: "User not found." });
+    }
+  } catch (error) {
+    console.error("Error fetching user data:", error);
+    res.status(500).json({ message: "Error fetching user data.", error: error.message });
+  }
+});
 router.get("/get-user", authenticateToken, async (req, res) => {
   try {
     const user_id = req.user.user_id; // Extract user ID from the token (adjust field name if necessary)
@@ -519,7 +546,295 @@ router.post("/signout", (req, res) => {
 });
 
 
+router.post("/update-user-details", authenticateToken, async (req, res) => {
+  try {
+    const { user_id } = req.user; // Extracted from the token by the middleware
+    const { username, email, phoneNumber } = req.body;
+
+    // Validate input
+    if (!username && !email && !phoneNumber) {
+      return res.status(400).json({ message: "Please provide at least one field to update." });
+    }
+
+    // Build the update object dynamically
+    const updateData = {};
+    if (username) updateData.username = username;
+    if (email) updateData.email = email;
+    if (phoneNumber) updateData.phoneNumber = phoneNumber;
+
+    // Update user in the database
+    const updatedUser = await Userlogin.findByIdAndUpdate(
+      user_id,
+      { $set: updateData },
+      { new: true, runValidators: true } // Return the updated document and validate fields
+    );
+
+    if (!updatedUser) {
+      return res.status(404).json({ message: "User not found." });
+    }
+
+    res.status(200).json({ message: "User updated successfully.", user: updatedUser });
+  } catch (error) {
+    console.error("Error updating user:", error);
+    if (error.code === 11000) {
+      return res.status(400).json({ message: "Email already in use." });
+    }
+    res.status(500).json({ message: "Internal server error." });
+  }
+});
 
 
+router.get("/get-personaluser-details", authenticateToken, async (req, res) => {
+  try {
+    const { user_id } = req.user; // Extracted from the token by the middleware
+
+    // Fetch user details
+    const user = await Userlogin.findById(user_id, "username email phoneNumber roles");
+
+    if (!user) {
+      return res.status(404).json({ message: "User not found." });
+    }
+
+    res.status(200).json({
+      message: "User details retrieved successfully.",
+      user: {
+        username: user.username,
+        email: user.email,
+        phoneNumber: user.phoneNumber,
+        roles: user.roles,
+      },
+    });
+  } catch (error) {
+    console.error("Error retrieving user details:", error);
+    res.status(500).json({ message: "Internal server error." });
+  }
+});
+
+// Ensure the 'uploads' directory exists
+const uploadDirectory = path.join(__dirname, "../uploads");
+
+if (!fs.existsSync(uploadDirectory)) {
+  fs.mkdirSync(uploadDirectory, { recursive: true }); // Create the 'uploads' directory if it doesn't exist
+}
+
+// Set up multer storage configuration
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, uploadDirectory); // Store images in the 'uploads' directory
+  },
+  filename: (req, file, cb) => {
+    cb(null, Date.now() + path.extname(file.originalname)); // Save with a unique name
+  },
+});
+
+const upload = multer({ storage: storage });
+
+router.post(
+  "/upload-profile-picture",
+  authenticateToken,
+  upload.single("profilePicture"), // This should handle the file upload
+  async (req, res) => {
+    const file = req.file;
+    console.log("File object received:", file); // Debugging log
+
+    const user_id = req.user ? req.user.user_id : null;
+
+    if (!user_id) {
+      return res.status(401).json({ error: "User ID not found in token" });
+    }
+
+    if (!file) {
+      return res.status(400).json({ error: "Profile picture file is required" });
+    }
+
+    try {
+      // Check if file and path exist
+      if (file && file.path) {
+        console.log(`File size: ${file.size} bytes`);
+        console.log(`File MIME type: ${file.mimetype}`);
+      } else {
+        return res.status(400).json({ error: "File path is missing or invalid" });
+      }
+
+      // Find the existing profile picture document for the user
+      const existingProfilePicture = await ProfilePicture.findOne({ user_id });
+
+      // If an existing profile picture exists, delete it from S3
+      if (existingProfilePicture) {
+        const oldFileName = decryptField(existingProfilePicture.profilePicture, existingProfilePicture.iv).split('/').pop();
+        const oldAwsFileKey = `${user_id}/profilepicture/${oldFileName}`;
+
+        // Delete the old file from AWS S3
+        const deleteParams = {
+          Bucket: process.env.AWS_BUCKET_NAME,
+          Key: oldAwsFileKey,
+        };
+        await s3.send(new DeleteObjectCommand(deleteParams));
+      }
+
+      // Sanitize the file name (replace any special characters to avoid issues with S3)
+      const fileName = file.originalname.replace(/[^a-zA-Z0-9.-]/g, "_");
+      const aws_file_key = `${user_id}/profilepicture/${fileName}`;
+      const aws_file_link = `https://${process.env.AWS_BUCKET_NAME}.s3.${process.env.AWS_REGION}.amazonaws.com/${aws_file_key}`;
+
+      const params = {
+        Bucket: process.env.AWS_BUCKET_NAME,
+        Key: aws_file_key,
+        Body: fs.createReadStream(file.path), // Use the local file path to upload to S3
+        ContentType: file.mimetype,  // Ensure the correct MIME type is used
+        ServerSideEncryption: "AES256",
+        ACL: "public-read",
+      };
+
+      // Upload the new file to S3
+      const command = new PutObjectCommand(params);
+      await s3.send(command);
+
+      // Encrypt the AWS file link
+      const encryptedFileLink = encryptField(aws_file_link);
+
+      // Update or create the profile picture entry in MongoDB
+      const profilePicture = await ProfilePicture.findOneAndUpdate(
+        { user_id },
+        {
+          profilePicture: encryptedFileLink.encryptedData,
+          iv: encryptedFileLink.iv,
+        },
+        { upsert: true, new: true }
+      );
+
+      res.status(201).json({
+        message: "Profile picture updated successfully",
+        profilePicture: {
+          user_id,
+          file_name: fileName,
+          aws_file_link,
+        },
+      });
+    } catch (error) {
+      console.error(error);
+      res.status(500).json({ error: "Error uploading profile picture" });
+    }
+  }
+);
+router.get("/get-profile-picture", authenticateToken, async (req, res) => {
+  const user_id = req.user ? req.user.user_id : null;
+
+  if (!user_id) {
+    return res.status(401).json({ error: "User ID not found in token" });
+  }
+
+  try {
+
+    const profilePictureDoc = await ProfilePicture.findOne({ user_id });
+
+    if (!profilePictureDoc) {
+      return res.status(404).json({ error: "Profile picture not found" });
+    }
+
+    const decryptedLink = decryptField(profilePictureDoc.profilePicture, profilePictureDoc.iv);
+    
+    
+    res.status(200).json({
+      message: "Profile picture retrieved successfully",
+      profilePicture: decryptedLink, 
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "Error retrieving profile picture" });
+  }
+});
+
+// API to get details of all users
+router.get("/user-details", async (req, res) => {
+  try {
+
+    const users = await Userlogin.find()
+      .populate("roles.role_id", "roleName") // Populate roles with roleName
+      .populate("memberships.subscription_id", "subscriptionName"); // Populate memberships with subscription details
+
+    if (!users || users.length === 0) {
+      return res.status(404).json({ message: "No users found." });
+    }
+
+
+    const userDetails = users.map(user => ({
+      user_id: user._id,
+      username: user.username,
+      email: user.email,
+      phoneNumber: user.phoneNumber,
+      roles: user.roles.map(role => ({
+        role_id: role.role_id ? role.role_id._id : null,
+        roleName: role.roleName,
+      })),
+      questions: user.questions,
+      memberships: user.memberships.map(membership => ({
+        subscription_id: membership.subscription_id ? membership.subscription_id._id : null,
+        subscriptionName: membership.subscription_id ? membership.subscription_id.subscriptionName : null,
+        buyingDate: membership.buyingDate,
+        planTime: membership.planTime,
+        expiryDate: membership.expiryDate,
+      })),
+      activeMembership: user.activeMembership,
+      deathDate: user.deathDate,
+    }));
+
+
+    res.status(200).json(userDetails);
+  } catch (error) {
+    console.error("Error fetching user details:", error);
+    res.status(500).json({ message: "An error occurred while fetching user details.", error: error.message });
+  }
+});
+
+
+
+
+router.get("/get-user-folders-and-files", authenticateToken, async (req, res) => {
+  try {
+    const user_id = req.user.user_id; 
+
+
+    const folders = await Folder.find({ user_id }).lean();
+
+    if (!folders || folders.length === 0) {
+      return res.status(404).json({ message: "No folders found for the user." });
+    }
+
+
+    const foldersWithFiles = await Promise.all(
+      folders.map(async (folder) => {
+        const files = await File.find({ folder_id: folder._id, user_id }).lean();
+
+
+        const decryptedFolder = {
+          folder_id: folder._id,
+          folder_name: decryptField(folder.folder_name, folder.iv_folder_name),
+          aws_folder_link: decryptField(folder.aws_folder_link, folder.iv_folder_link),
+          created_at: folder.created_at,
+        };
+
+        const decryptedFiles = files.map((file) => ({
+          file_id: file._id,
+          file_name: decryptField(file.file_name, file.iv_file_name),
+          aws_file_link: decryptField(file.aws_file_link, file.iv_file_link),
+          date_of_upload: file.date_of_upload,
+          tags: file.tags,
+          sharing_contacts: file.sharing_contacts,
+        }));
+
+        return {
+          ...decryptedFolder,
+          files: decryptedFiles,
+        };
+      })
+    );
+
+    res.status(200).json({ folders: foldersWithFiles });
+  } catch (error) {
+    console.error("Error retrieving folders and files:", error);
+    res.status(500).json({ message: "Error retrieving folders and files.", error: error.message });
+  }
+});
 
 module.exports = { router, authenticateToken };

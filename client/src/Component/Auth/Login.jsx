@@ -148,10 +148,10 @@ const Login = ({ name = "Daniel" }) => {
  
                 console.log("OTP verified and token stored successfully!");
                 localStorage.setItem("token", token);
-                localStorage.setItem("userId", user);
-                localStorage.setItem("user", userData);
-                localStorage.setItem("email", username);
-
+                // localStorage.setItem("user", user);
+                // localStorage.setItem("user", userData);
+                localStorage.setItem("user", username);
+console.log(username);
                 
                 setError(""); // Clear error message
                 navigate("/folder/1"); // Redirect to Dashboard
@@ -238,7 +238,7 @@ const Login = ({ name = "Daniel" }) => {
 
 //for otp working
             // setToken(data.accessToken);
-            setUser(data.user.user_id);
+            setUser(data.user.username);
             // setUserData(data.user.username);
             // setUsername(data.user.email);
 
@@ -249,7 +249,7 @@ const Login = ({ name = "Daniel" }) => {
             Cookies.set('token', data.accessToken, { expires: 7, secure: true, sameSite: 'strict' });
 
             localStorage.setItem("token", data.accessToken);
-            localStorage.setItem("user", data.user.user_id);
+            localStorage.setItem("user", data.user.username);
             localStorage.setItem("email", data.user.email);
     
             if (!data.user.questions) { 
@@ -375,7 +375,7 @@ const Login = ({ name = "Daniel" }) => {
     
             setConfirmationResult(confirmation);
             setMessage('OTP sent to your phone.');
-            handleNextStep();
+            // handleNextStep();
         } catch (error) {
             console.log("Error message:", error.message);
             setMessage(`Failed to send OTP: ${error.message}`);
@@ -473,22 +473,22 @@ const Login = ({ name = "Daniel" }) => {
        
 
     return (
-        <div className="flex flex-col md:flex-row h-screen text-white justify-center">
+        <div className="flex flex-col md:flex-row h-screen text-white">
             {/* Left Section */}
-            <div id="recaptcha-container"></div>
-            <div className="lg:w-2/4 w-full flex flex-col justify-center items-center p-3 md:p-6">
+           
+            <div className="lg:w-2/4 w-full flex flex-col  justify-center p-3 md:p-6">
                 <div className="bg-white text-black p-10 rounded-lg min-w-full max-w-md">
                     {/* Logo */}
                     <div className="flex  items-center mb-4 lg:w-full sm:w-[80%] w-full">
                         <img
                             src={logo}
                             alt="Cumulus Logo"
-                            className="min-h-10 w-full object-fit "
+                            className="min-h-8 w-full object-fit "
                         />
                     </div>
 
                     {/* Dynamic Name */}
-                    <h1 className="text-2xl font-bold mb-2 text-center lg:text-left ">
+                    <h1 className="text-2xl font-bold mb-2 text-left ">
                         Hello, {name}
                     </h1>
                     <p className=" text-gray-600 mb-6">
@@ -561,13 +561,14 @@ const Login = ({ name = "Daniel" }) => {
             </div>
 
             {/* Right Section */}
-            <div className="hidden lg:flex md:w-3/5 bg-gray-100 justify-center items-center aspect-[16/9]">
-                <img
-                    src={rightsignup}
-                    alt="Illustration"
-                    className="w-full h-full object-fit"
-                />
-            </div>
+            <div className="hidden min-h-screen z-10 lg:flex md:w-3/5 bg-slate-100 justify-center items-center">
+                            <img
+                                src={rightsignup}
+                                alt="Illustration"
+                                className="right-img-on-des min-w-full bg-cover bg-no-repeat bg-center max-h-[700px]"
+                            />
+                     
+                        </div>
             {isDialogOpen && (
                 <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-3 md:p-0">
                     <div className="bg-white p-6 rounded-lg shadow-lg w-full max-w-2xl relative">
@@ -780,7 +781,7 @@ const Login = ({ name = "Daniel" }) => {
             )}
      
                                 <button
-                                    onClick={handleSubmit}
+                                    // onClick={handleSubmit}
                                     disabled={!phoneNumber}
                                     className={`w-full mt-4 py-2 rounded-md ${phoneNumber
                                         ? "bg-blue-500 text-white hover:bg-blue-600"
@@ -795,6 +796,7 @@ const Login = ({ name = "Daniel" }) => {
 
                         {currentStep === 3 && (
                             <div>
+                                 <div id="recaptcha-container"></div>
                                         {/* <div ref={recaptchaContainer}></div> */}
                                 <h2 className="text-xl font-semibold mb-3 text-black">
                                     Phone Verification
@@ -830,6 +832,12 @@ const Login = ({ name = "Daniel" }) => {
                                         placeholder="Enter OTP"
                                     />
                                 </div>
+                                {message && (
+                <div className="mt-4 p-2 border rounded-md text-center bg-gray-100 text-gray-800">
+                    {message}
+                </div>
+                
+            )}
                                 <button
                                     onClick={verifyOTP}
                                     disabled={!otp}

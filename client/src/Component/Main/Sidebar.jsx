@@ -1,4 +1,5 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect,useRef } from "react";
+
 import Cookies from 'js-cookie';
 import FolderNotch from "../../assets/FolderNotch.png"
 import WhiteFolderNotch from "../../assets/WhiteFolderNotch.png"
@@ -22,17 +23,20 @@ import {
   x,
   X,
   LogOut,
-  FolderOpen
+  FolderOpen,
+  Loader2
 } from "lucide-react";
 import logo from "../../assets/logo.png";
 import axios from "axios";
 import { Link, Navigate, NavLink, useLocation, useNavigate } from "react-router-dom";
 import fetchUserData from "./fetchUserData";
 import { API_URL } from "../utils/Apiconfig";
+import useLoadingStore from "../../store/UseLoadingStore";
 const Sidebar = ({ onFolderSelect }) => {
   const [deletebutton, setDeletebutton] = useState(false);
   const [deletebutton2, setDeletebutton2] = useState(false);
   const [folders, setFolders] = useState([]);
+  
 
   const location = useLocation(); // Access current URL for routing
   // const [designers, setDesigners] = useState([
@@ -42,6 +46,7 @@ const Sidebar = ({ onFolderSelect }) => {
   //     "Designer 4",
   // ]);
   const navigate = useNavigate();
+  const { isLoading, showLoading, hideLoading } = useLoadingStore();
   const [selectedFolder, setSelectedFolder] = useState(null);
   const [showFolderInput, setShowFolderInput] = useState(false);
   const [overlayVisible, setOverlayVisible] = useState(false);
@@ -67,11 +72,16 @@ const Sidebar = ({ onFolderSelect }) => {
   const [isMembershipActive, setIsMembershipActive] = useState(false);
   const [membershipDetail, setMembershipDetail] = useState(null);
   const [deletebutton1, setDeletebutton1] = useState(false);
+  const openmenuref = useRef(null);
+  const [editFolderName, setEditFolderName] = useState(""); // State for folder name being edited
+  const [editingFolderId, setEditingFolderId] = useState(null); // State to track which folder is being edited
 
-
-
-
-
+  const handleClickhelp = () => {
+    navigate('/help'); // Replace '/target-route' with your desired route
+  };
+  const handledesigneedashboard = () => {
+    navigate('/designee-dashboard'); // Replace '/target-route' with your desired route
+  };
 
   useEffect(() => {
     const getUserData = async () => {
@@ -104,6 +114,43 @@ const Sidebar = ({ onFolderSelect }) => {
 
   // };
   // Fetch folders from API
+
+
+  const handleEditFolder = async () => {
+    if (!editFolderName) {
+      setError("New folder name is required.");
+      return;
+    }
+
+    try {
+      const token = localStorage.getItem("token");
+      if (!token) {
+        throw new Error("No token found. Please log in again.");
+      }
+
+      const response = await axios.post(
+        `${API_URL}/api/edit-folder-name`,
+        {
+          folder_id: editingFolderId,
+          new_folder_name: editFolderName,
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      // alert(response.data.message); // Show success message
+      setEditingFolderId(null); // Close edit mode
+      setEditFolderName(""); // Clear input
+      fetchFolders(); // Refresh folder list
+      setOpenMenuId(null);
+    } catch (err) {
+      setError("Error updating folder name.");
+      console.error(err);
+    }
+  };
   const fetchFolders = async () => {
     setLoading(true);
     try {
@@ -261,16 +308,38 @@ const Sidebar = ({ onFolderSelect }) => {
   //     setShowDesignerInput(false);
   // };
 
-  const handleAddDesignee = () => {
+  const handleAddDesignee = async () => {
+    showLoading();
     if (designeeName && designeePhone && designeeEmail) {
       setDesigners([...designers, designeeName]); // Add the new designer to the list
-      setShowDesignerPopup(false); // Close the popup
+      //setShowDesignerPopup(false); // Close the popup
+      console.log("designeeName",designeeName);
+      console.log("designeePhone",designeePhone);
+      console.log("designeeEmail",designeeEmail);
       setDesigneeName(""); // Reset the input fields
       setDesigneePhone("");
       setDesigneeEmail("");
+      console.log("designeeName",designeeName);
+      console.log("designeePhone",designeePhone);
+      console.log("designeeEmail",designeeEmail);
+      const token = localStorage.getItem("token");
+      const response = await axios.post(`${API_URL}/api/designee/add-designee`, {designeeName, designeePhone, designeeEmail},
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+      console.log(response);
+      // alert("Designee added successfully!");
+      setShowDesignerPopup(false);
+      fetchDesignees();
+      hideLoading();
     } else {
       alert("Please fill out all fields before inviting a designee.");
+      hideLoading();
     }
+   
   };
   useEffect(() => {
     console.log("Current path:", location.pathname); // Debugging
@@ -279,13 +348,61 @@ const Sidebar = ({ onFolderSelect }) => {
       onFolderSelect(1); // Trigger the function to fetch files for folder 1
     }
   }, [location, onFolderSelect]);
+
+  
+  useEffect(() => {
+    const handleOutsideClick = (event) => {
+      if (openmenuref.current && !openmenuref.current.contains(event.target)) {
+        setOpenMenuId(null); 
+      }
+    };
+
+    document.addEventListener("mousedown", handleOutsideClick);
+    document.addEventListener("touchstart", handleOutsideClick);
+
+    return () => {
+      document.removeEventListener("mousedown", handleOutsideClick);
+      document.removeEventListener("touchstart", handleOutsideClick);
+    };
+  }, []);
+
+ 
+    const fetchDesignees = async () => {
+      try {
+        const token = localStorage.getItem("token");
+        const response = await axios.post(
+          `${API_URL}/api/designee/auth-get`,
+          {}, // Empty body if you don't need to send any data in the request body
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }
+        );
+        setDesigners(response.data.designees); // Assuming response contains designees
+      } catch (error) {
+        console.error("Error fetching designees:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    useEffect(() => {
+    fetchDesignees();
+  }, []);
+   
+
+  // if (loading) {
+  //   return <div>Loading...</div>;
+  // }
+
   return (
     <div className="hidden md:flex flex-col  min-h-screen w-64 bg-gray-100 p-3 space-y-0  overflow-hidden">
-      <div style={{ width: "25vw" }} className="mb-2">
+      <div style={{ width: "25vw" }} className="mb-2 ">
         <img
           src={logo}
           alt="Cumulus Logo"
-          style={{ width: "100vw", height: "6vh" }}
+          style={{ width: "100%", height: "6vh" }}
+
         />
       </div>
 
@@ -305,11 +422,11 @@ const Sidebar = ({ onFolderSelect }) => {
           <h2 className="ml-3 font-semibold text-sm">What is Cumulus</h2>
         </NavLink> */}
 
-
+        <h1 className="font-semibold text-[#667085] my-2 text-sm">Home</h1>
         <NavLink
           to="/folder/0"
           className={({ isActive }) =>
-            `flex  cursor-pointer p-2 rounded ${isActive ? "bg-blue-500 text-white" : "text-[#434A60]"}`
+            `flex  cursor-pointer p-2 rounded mt-1 mb-3 ${isActive ? "bg-[#0067FF] text-white" : "text-[#434A60]"}`
           }
           onClick={() => {
             console.log("All Files clicked, sending folderId = 0");
@@ -325,14 +442,14 @@ const Sidebar = ({ onFolderSelect }) => {
                 alt="All Files"
                 className="h-full"
               />
-              <h2 className="ml-3 text-sm">All Files</h2>
+              <h2 className="ml-3 font-medium text-sm">All Files</h2>
             </span>
           )}
         </NavLink>
 
 
 
-        <h2 className="font-semibold text-[#667085] text-xs mt-2">
+        <h2 className="font-semibold text-[#667085] text-xs my-2">
           {folders.length} Folders
           {folders.length + 1 > 3 && (
             <button
@@ -341,7 +458,7 @@ const Sidebar = ({ onFolderSelect }) => {
                 setOpenMenuId(null);
               }
               }
-              className="text-blue-500 text-xs float-right"
+              className="text-blue-500 text-xs float-right !font-semibold"
             >
               {viewAllFolders ? "View Less" : "View All"}
             </button>
@@ -350,33 +467,41 @@ const Sidebar = ({ onFolderSelect }) => {
         {loading && <p>Loading folders...</p>}
 
         <ul>
+          {/* Static Cumulus Folder */}
           <NavLink
             to="/folder/1"
             className={({ isActive }) =>
-              `py-1 px-2 flex items-center rounded cursor-pointer ${isActive ? "bg-blue-500 text-white" : "text-[#434A60]"}`
+              `py-1 px-2 my-2 flex items-center rounded cursor-pointer text-sm font-medium ${isActive ? "bg-[#0067FF] text-white" : "text-[#434A60]"
+              }`
             }
             onClick={() => {
-              console.log("What is Cumulus clicked, sending folderId = 1");
+              console.log("Cumulus folder clicked, sending folderId = 1");
               onFolderSelect(1);
               setOpenMenuId(null);
             }}
           >
             {({ isActive }) => (
-              <span className="flex gap-2">
+              <span className="flex gap-2 items-center">
                 <img
-                  src={isActive ? WhiteFolderNotch : FolderNotch} // Use active/inactive images
+                  src={isActive ? WhiteFolderNotch : FolderNotch}
                   alt="Folder"
-                  className="h-6 font-bold"
+                  className="h-6"
                 />
-                <h2>Cumulus</h2>
+                <h2 className={`${isActive ? "text-white" : "text-[#434A60]"}`}>
+                  Cumulus
+                </h2>
               </span>
             )}
           </NavLink>
 
+          {/* Dynamic Folders */}
           {(viewAllFolders ? folders : folders.slice(0, 3)).map((folder) => (
             <NavLink
-              key={folder.id}
               to={`/folder/${folder.id}`}
+              className={({ isActive }) =>
+                `py-1 px-2 my-2 flex items-center rounded cursor-pointer text-sm font-medium ${isActive && !editingFolderId ? "bg-[#0067FF] text-white" : "text-[#434A60]"
+                }`
+              }
               onClick={(e) => {
                 if (openMenuId === folder.id) {
                   e.preventDefault();
@@ -384,46 +509,81 @@ const Sidebar = ({ onFolderSelect }) => {
                   handleFolderSelect(folder);
                 }
               }}
-              className={({ isActive }) =>
-                `py-1 px-2 flex items-center rounded cursor-pointer ${isActive ? "bg-blue-500 text-white" : "text-[#434A60]"}`
-              }
             >
               {({ isActive }) => (
-                <div className="flex justify-between w-full relative">
-                  <span className="flex gap-2">
-                    {/* Conditionally render the image based on isActive */}
-                    <img
-                      src={isActive ? WhiteFolderNotch : FolderNotch} // Use active/inactive images
-                      alt="Folder"
-                      className="h-6 font-bold"
-                    />
-                    {folder.name}
-                  </span>
-
-                  <button
-                    onClick={(e) => {
-                      e.preventDefault();
-                      toggleEllipses(folder.id); // Handle menu toggle without navigation
-                    }}
-                  >
-                    <EllipsisVertical className="font-thin h-5" />
-                  </button>
+                <div className="flex justify-between w-full relative items-center">
+                  {editingFolderId === folder.id ? (
+                    <>
+                      <input
+                        type="text"
+                        value={editFolderName}
+                        onChange={(e) => setEditFolderName(e.target.value)}
+                        placeholder="Enter new folder name"
+                        className="border p-2 rounded w-full mr-2 text-black"
+                      />
+                      <button
+                        className="text-green-500 ml-2"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          handleEditFolder(); // Save action
+                          setEditingFolderId(null); // Exit editing mode
+                        }}
+                      >
+                        <Check />
+                      </button>
+                      <button
+                        className="text-red-500 ml-2"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          setEditingFolderId(null); // Cancel editing
+                          setEditFolderName(""); // Reset folder name
+                        }}
+                      >
+                        <X />
+                      </button>
+                    </>
+                  ) : (
+                    <>
+                      <span className="flex gap-2 items-center truncate-text">
+                        <img
+                          src={
+                            isActive && !editingFolderId
+                              ? WhiteFolderNotch
+                              : FolderNotch
+                          }
+                          alt="Folder"
+                          className="h-6 font-bold"
+                        />
+                        {folder.name}
+                      </span>
+                      <button
+                        onClick={(e) => {
+                          e.preventDefault();
+                          toggleEllipses(folder.id);
+                        }}
+                      >
+                        <EllipsisVertical className="font-thin h-5" />
+                      </button>
+                    </>
+                  )}
 
                   {/* Menu Options */}
-                  {openMenuId === folder.id && (
-                    <div className="absolute top-full right-0 mt-2 w-32 bg-white shadow-lg rounded-lg text-black z-20">
+                  {openMenuId === folder.id && !editingFolderId && (
+                    <div
+                    ref={openmenuref}
+                     className="absolute top-full right-0 mt-2 w-32 bg-white shadow-lg rounded-lg text-black z-20">
                       <button
                         className="w-full px-4 py-2 text-left hover:bg-gray-100"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setOpenMenuId(null);
+                        onClick={() => {
+                          setEditingFolderId(folder.id); // Enter editing mode
+                          setEditFolderName(folder.name);
                         }}
                       >
                         Edit
                       </button>
                       <button
                         className="w-full px-4 py-2 text-left hover:bg-gray-100"
-                        onClick={(e) => {
+                        onClick={() => {
                           setDeletebutton(true); // Open Delete Confirmation Modal
                           setSelectedFolder(folder.id); // Set Selected Folder
                         }}
@@ -438,7 +598,6 @@ const Sidebar = ({ onFolderSelect }) => {
           ))}
         </ul>
 
-
         {!showFolderInput && (
           <button
             onClick={() => {
@@ -450,9 +609,9 @@ const Sidebar = ({ onFolderSelect }) => {
                 setOpenMenuId(null);
               }
             }}
-            className="flex items-center w-full bg-gray-200 py-1 text-black rounded-md mt-1 justify-center border"
+            className="flex items-center w-full bg-gray-200 py-1 text-black rounded-md mt-1 mb-3 justify-center border text-xs"
           >
-            <Plus className="mr-2" />
+            <Plus className="mr-2 w-5 h-5" />
             Add Folder
           </button>
         )}
@@ -534,7 +693,7 @@ const Sidebar = ({ onFolderSelect }) => {
             </div> */}
 
       {/* Designees Section */}
-      <div className="">
+      {/* <div className="">
         <h2 className="font-semibold text-[#667085] text-xs mt-2">
           {designers.length} Designees
           {designers.length > 3 && (
@@ -562,7 +721,7 @@ const Sidebar = ({ onFolderSelect }) => {
             )
           )}
         </ul>
-        {/* Add Designer Button */}
+    
         <button
           onClick={() => {
             if (isMembershipActive) {
@@ -577,10 +736,10 @@ const Sidebar = ({ onFolderSelect }) => {
         >
           <Plus className="mr-2" />
           Add Designer
-        </button>
+        </button> */}
 
-        {/* Popup for Adding Designee */}
-        {showDesignerPopup && (
+      {/* Popup for Adding Designee */}
+      {/* {showDesignerPopup && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-gray-800 bg-opacity-50">
             <div className="bg-white p-6 rounded-lg shadow-lg w-96">
               <div className="flex justify-between items-center border-b pb-3">
@@ -635,14 +794,14 @@ const Sidebar = ({ onFolderSelect }) => {
                 className="w-full bg-blue-500 text-white py-2 rounded-md hover:bg-blue-600"
               >
                 Invite to Cumulus
-              </button>
+              </button> */}
 
 
-            </div>
+      {/* </div>
 
           </div>
         )}
-      </div>
+      </div> */}
 
       {/* Tags
             <div>
@@ -650,24 +809,152 @@ const Sidebar = ({ onFolderSelect }) => {
                 <span className="text-gray-700 py-1 px-2 bg-gray-200 rounded-full ">Will</span>
             </div> */}
 
+
+
+<h2 className="font-semibold text-[#667085] text-xs mt-2">
+        {designers.length} Designees
+        {designers.length > 3 && (
+          <button 
+            // onClick={() => {
+            //   setViewAllDesigners(!viewAllDesigners);
+            // }}
+            className="text-blue-500 text-xs float-right"
+            onClick={handledesigneedashboard}
+          >
+            {/* {viewAllDesigners ? "View Less" : "View All"} */}
+            View All
+          </button>
+        )}
+      </h2>
+      <ul>
+        {(viewAllDesigners ? designers : designers.slice(0, 3)).map((designer, index) => (
+          <li
+            key={index}
+            className="text-gray-700 py-1 hover:text-blue-500 flex items-center cursor-pointer"
+            onClick={handledesigneedashboard}
+          >
+            <User className="mr-2" />
+            {designer.name} 
+          </li>
+        ))}
+      </ul>
+    
+        <button
+          onClick={() => {
+            if (isMembershipActive) {
+              setOpenMenuId(null);
+              setShowDesignerPopup(true);
+            } else {
+              setOpenMenuId(null);
+              setDeletebutton2(true);
+            }
+          }}
+          className="flex items-center w-full bg-gray-200 p-1 text-black !mt-1 !mb-3 rounded-md justify-center border text-xs"
+        >
+          <Plus className="mr-2 w-5 h-5" />
+          Add Designer
+        </button> 
+
+
+        {showDesignerPopup && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-gray-800 bg-opacity-50">
+            <div className="bg-white p-6 rounded-lg shadow-lg w-96">
+              <div className="flex justify-between items-center border-b pb-3">
+                <h3 className="text-lg font-semibold">Add Designee</h3>
+                <button
+                  onClick={() => setShowDesignerPopup(false)}
+                  className="text-gray-500"
+                >
+                  ✕
+                </button>
+              </div>
+              <div className="mt-4">
+                <div className="flex items-center justify-center mb-4">
+                  <div className="w-24 h-24 rounded-full border-dashed border-2 flex items-center justify-center text-gray-500">
+                    <Camera className="h-6 w-6" />
+                  </div>
+                </div>
+                <label className="block mb-2 text-sm font-medium">
+                  Enter Designee Name
+                </label>
+                <input
+                  type="text"
+                  placeholder="Designee Name"
+                  value={designeeName}
+                  onChange={(e) => setDesigneeName(e.target.value)}
+                  className="border p-2 rounded w-full mb-3"
+                />
+                <label className="block mb-2 text-sm font-medium">
+                  Enter Designee Phone Number
+                </label>
+                <input
+                  type="text"
+                  placeholder="Designee Phone Number"
+                  value={designeePhone}
+                  onChange={(e) => setDesigneePhone(e.target.value)}
+                  className="border p-2 rounded w-full mb-3"
+                />
+                <label className="block mb-2 text-sm font-medium">
+                  Enter Designee Email
+                </label>
+                <input
+                  type="email"
+                  placeholder="Designee Email"
+                  value={designeeEmail}
+                  onChange={(e) => setDesigneeEmail(e.target.value)}
+                  className="border p-2 rounded w-full mb-4"
+                />
+              </div>
+
+              {isLoading ? (
+  <button
+   
+    className="w-full bg-blue-500 text-white py-2 rounded-md hover:bg-blue-400 flex justify-center items-center"
+  >
+    <Loader2 className="animate-spin h-6 w-6 text-center" />
+  </button>
+) : (
+  <button
+    onClick={handleAddDesignee}
+    className="w-full bg-blue-500 text-white py-2 rounded-md hover:bg-blue-600 transition"
+  >
+    Invite to Cumulus
+  </button>
+)}
+
+
+
+              {/* <button
+                onClick={handleAddDesignee}
+                //onClick={() => setShowDesignerPopup(false)}
+                className="w-full bg-blue-500 text-white py-2 rounded-md hover:bg-blue-600"
+              >
+                Invite to Cumulus
+              </button> */}
+
+              
+            </div>
+            
+          </div>
+        )}
       {/* Voice memo */}
       <div className="">
-        <h2 className="font-normal text-[#667085] mt-2">Voice memo</h2>
+      <h2 className="font-semibold text-[#667085] my-2 text-xs">Voice memo</h2>
         <NavLink
           to="/voicememo"
           onClick={() => setOpenMenuId(null)}
           className={({ isActive }) =>
-            `flex mb-2 cursor-pointer p-2 rounded ${isActive ? "bg-blue-500 text-white" : "text-[#434A60]"}`
+            `flex cursor-pointer p-2 rounded mb-3 ${isActive ? "bg-[#0067FF] text-white" : "text-[#434A60]"}`
           }
-        >
+        >                                                                                                                                       
           {({ isActive }) => (
-            <span className="flex items-center h-6">
+            <span className="flex items-center h-5 w-5">
               <img
                 src={isActive ? whiteemic : Microphone} // Dynamically change image based on isActive
                 alt="Microphone Icon"
-                className="h-6 w-6" // Adjust image size
+                className="h-5 w-5" // Adjust image size
               />
-              <h2 className="ml-3">Create A Voicememo</h2>
+              <h2 className="ml-3 text-sm text-nowrap font-medium">Create A Voicememo</h2>
             </span>
           )}
         </NavLink>
@@ -675,42 +962,75 @@ const Sidebar = ({ onFolderSelect }) => {
 
       {/* Transfer */}
       <div>
-        <h2 className="font-normal text-[#667085]">Transfer</h2>
-        <div className="text-[#434A60] py-1 pl-2 hover:text-blue-500 cursor-pointer flex">
-          <img src={aftertlife} alt="" className="h-6" />
-          <span className="ml-3">After Life Access</span>
-        </div>
+        <h2 className="font-semibold mt-2 text-[#667085] text-xs">Transfer</h2>
+        <NavLink
+          to="/afterlifeaccess"
+          onClick={() => setOpenMenuId(null)}
+          className={({ isActive }) =>
+           `flex cursor-pointer p-2 rounded mb-3 ${isActive ? "bg-[#0067FF] text-white" : "text-[#434A60]"}`
+          }
+        >
+          {({ isActive }) => (
+            <span className="flex items-center h-6">
+              <img
+                src={isActive ? whiteemic : Microphone} // Dynamically change image based on isActive
+                alt="Microphone Icon"
+                className="h-5 w-5" // Adjust image size
+              />
+              <h2 className="ml-3 text-sm text-nowrap font-medium">After Life Access</h2>
+            </span>
+          )}
+        </NavLink>
       </div>
 
       {/* Shared Files */}
 
       <div className="">
-        <h2 className="font-normal text-[#667085] mt-1">Share file</h2>
+        <h2 className="font-semibold text-[#667085] text-xs my-2">Shared file</h2>
         <NavLink
           to="/SharedFiles"
           onClick={() => setOpenMenuId(null)}
           className={({ isActive }) =>
-            `flex mb-2 cursor-pointer p-2 rounded  ${isActive ? "bg-blue-500 text-white" : "text-[#434A60]"
+            `flex mb-3 cursor-pointer p-2 rounded  ${isActive ? "bg-[#0067FF] text-white" : "text-[#434A60]"
             }`
           }
         >
           <span className="flex ">
-            <Users className="" />
-            <h2 className="ml-3">Share With Me</h2>
+            <Users className="h-5 w-5" />
+            <h2 className="ml-3 text-sm font-medium">Shared With Me</h2>
           </span>
 
         </NavLink>
       </div>
 
-      {/* Help & Support */}
-      <div className="flex-grow"></div>
-      <div className="mt-auto ">
-        <button className="flex w-full  p-2 text-[#667085]  rounded-md ">
-          <span className="flex gap-2">
-            <CircleAlertIcon />
+      <div className="">
+        {/* <h2 className="font-semibold text-[#667085] text-xs my-2">Shared file</h2> */}
+        <NavLink
+          to="/help"
+          onClick={() => setOpenMenuId(null)}
+          className={({ isActive }) =>
+            `flex mb-3 cursor-pointer p-2 rounded ${isActive ? "bg-[#0067FF] text-white" : "text-black"}`
+        
+          }
+        >
+        <button className="flex w-full p-2   rounded-md " onClick={handleClickhelp}>
+          <span className="flex gap-2 text-sm font-medium">
+            <CircleAlertIcon className="h-5 w-5"/>
             Help and Support</span>
         </button>
+
+        </NavLink>
       </div>
+
+      {/* Help & Support */}
+      {/* <div className="flex-grow"></div>
+      <div className="mt-auto ">
+        <button className="flex w-full p-2 text-[#434A60]  rounded-md " onClick={handleClickhelp}>
+          <span className="flex gap-2 text-sm font-medium">
+            <CircleAlertIcon className="h-4 w-4"/>
+            Help and Support</span>
+        </button>
+      </div> */}
 
 
 

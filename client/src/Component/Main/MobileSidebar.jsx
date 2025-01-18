@@ -15,6 +15,8 @@ import {
   LogOut,
 } from "lucide-react";
 // import logo from "../../assets/logo.png";
+import DesignerPopup from "../Main/Designeepopup";
+import usePopupStore from "../../store/DesigneeStore";
 import mobilelogo from "../../assets/mobilelogo.png"
 import Allfiles from "../../assets/Allfiles.png"
 import blackallfiles from "../../assets/blackallfiles.png"
@@ -48,6 +50,11 @@ const MobileSidebar = ({ onFolderSelect }) => {
   const [viewAllFolders, setViewAllFolders] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null); // For handling errors
+  const openPopup = usePopupStore((state) => state.openPopup);
+  const [showDesignerPopup, setShowDesignerPopup] = useState(false);
+  const [designeeName, setDesigneeName] = useState("");
+  const [designeePhone, setDesigneePhone] = useState("");
+  const [designeeEmail, setDesigneeEmail] = useState("");
   const [newDesigner, setNewDesigner] = useState("");
   const [showDesignerInput, setShowDesignerInput] = useState(false);
   // const [viewAllDesigners, setViewAllDesigners] = useState(false);
@@ -55,10 +62,10 @@ const MobileSidebar = ({ onFolderSelect }) => {
   const [selectedFolder, setSelectedFolder] = useState(null);
   const [viewAllDesigners, setViewAllDesigners] = useState(false); // Toggles "View All" and "View Less"
   const [designers, setDesigners] = useState([]); // List of designees
-  const [showDesignerPopup, setShowDesignerPopup] = useState(false); // Toggles the popup visibility
-  const [designeeName, setDesigneeName] = useState(""); // Holds the input for designee name
-  const [designeePhone, setDesigneePhone] = useState(""); // Holds the input for designee phone number
-  const [designeeEmail, setDesigneeEmail] = useState(""); // Holds the input for designee email
+  // const [showDesignerPopup, setShowDesignerPopup] = useState(false); // Toggles the popup visibility
+  // const [designeeName, setDesigneeName] = useState(""); // Holds the input for designee name
+  // const [designeePhone, setDesigneePhone] = useState(""); // Holds the input for designee phone number
+  // const [designeeEmail, setDesigneeEmail] = useState(""); // Holds the input for designee email
   const [deletebutton2, setDeletebutton2] = useState(false);
   const navigate = useNavigate();
   const [openMenuId, setOpenMenuId] = useState(() => {
@@ -80,6 +87,14 @@ const MobileSidebar = ({ onFolderSelect }) => {
   const [isMembershipActive, setIsMembershipActive] = useState(false);
   const [membershipDetail, setMembershipDetail] = useState(null);
   const [deletebutton1, setDeletebutton1] = useState(false);
+
+  const handleClickhelp = () => {
+    setIsOpen(false); // Close the menu or modal
+    navigate('/help'); // Navigate to the desired route
+  };
+
+  const [editFolderName, setEditFolderName] = useState(""); // State for folder name being edited
+  const [editingFolderId, setEditingFolderId] = useState(null); // State to track which folder is being edited
   useEffect(() => {
     const getUserData = async () => {
       try {
@@ -143,6 +158,42 @@ const MobileSidebar = ({ onFolderSelect }) => {
       console.error(error);
     }
   }
+
+
+  const handleEditFolder = async () => {
+    if (!editFolderName) {
+      setError("New folder name is required.");
+      return;
+    }
+
+    try {
+      const token = localStorage.getItem("token");
+      if (!token) {
+        throw new Error("No token found. Please log in again.");
+      }
+
+      const response = await axios.post(
+        `${API_URL}/api/edit-folder-name`,
+        {
+          folder_id: editingFolderId,
+          new_folder_name: editFolderName,
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      alert(response.data.message); // Show success message
+      setEditingFolderId(null); // Close edit mode
+      setEditFolderName(""); // Clear input
+      fetchFolders(); // Refresh folder list
+    } catch (err) {
+      setError("Error updating folder name.");
+      console.error(err);
+    }
+  };
   // Fetch folders from API
   const fetchFolders = async () => {
     setLoading(true);
@@ -277,13 +328,28 @@ const MobileSidebar = ({ onFolderSelect }) => {
     }
   };
 
-  const handleAddDesignee = () => {
+  const handleAddDesignee = async () => {
     if (designeeName && designeePhone && designeeEmail) {
       setDesigners([...designers, designeeName]); // Add the new designer to the list
-      setShowDesignerPopup(false); // Close the popup
+      //setShowDesignerPopup(false); // Close the popup
+      console.log("designeeName",designeeName);
+      console.log("designeePhone",designeePhone);
+      console.log("designeeEmail",designeeEmail);
       setDesigneeName(""); // Reset the input fields
       setDesigneePhone("");
       setDesigneeEmail("");
+      const token = localStorage.getItem("token");
+      const response = await axios.post(`${API_URL}/api/designee/add`, {designeeName, designeePhone, designeeEmail},
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+      console.log(response);
+      alert("Designee added successfully!");
+      
+      setShowDesignerPopup(false);
     } else {
       alert("Please fill out all fields before inviting a designee.");
     }
@@ -319,6 +385,8 @@ const MobileSidebar = ({ onFolderSelect }) => {
   }, [isOpen]);
 
 
+
+  
   return (
     <>
       {/* Menu Icon to Open Sidebar */}
@@ -355,8 +423,8 @@ const MobileSidebar = ({ onFolderSelect }) => {
               // style={{ width: "100vw", height: "30px" }}
               />
             </div>
-            <button onClick={() => setIsOpen(false)}>
-              <X size={32} />
+            <button className="border  w-10 h-9 rounded-lg" onClick={() => setIsOpen(false)}>
+              <X size={32} className="ml-1" />
             </button>
           </div>
 
@@ -406,7 +474,7 @@ const MobileSidebar = ({ onFolderSelect }) => {
             >
               <h2 className="ml-3">All Files</h2>
             </NavLink> */}
-
+            <h1 className="font-semibold text-[#667085] mt-2 text-sm">Home</h1>
             <NavLink
               to="/folder/0"
               className={({ isActive }) =>
@@ -432,7 +500,7 @@ const MobileSidebar = ({ onFolderSelect }) => {
               )}
             </NavLink>
 
-            <h2 className="font-semibold text-[#667085] text-xs mt-2">
+            <h2 className="font-semibold text-[#667085] text-sm mt-2">
               {folders.length} Folders
               {folders.length > 3 && (
                 <button
@@ -457,10 +525,11 @@ const MobileSidebar = ({ onFolderSelect }) => {
                 className={({ isActive }) =>
                   `py-1 px-2 flex items-center rounded cursor-pointer ${isActive ? "bg-blue-500 text-white" : "text-[#434A60]"}`
                 }
-                onClick={() => {
+                onClick={(e) => {
                   console.log("What is Cumulus clicked, sending folderId = 1");
                   onFolderSelect(1);
                   setOpenMenuId(null);
+
                 }}
               >
                 {({ isActive }) => (
@@ -474,62 +543,219 @@ const MobileSidebar = ({ onFolderSelect }) => {
                   </span>
                 )}
               </NavLink>
+
               {(viewAllFolders ? folders : folders.slice(0, 3)).map((folder) => (
+                // <NavLink
+                //   key={folder.id}
+                //   to={`/folder/${folder.id}`}
+                //   onClick={(e) => {
+                //     if (openMenuId === folder.id) {
+                //       e.preventDefault();
+                //     } else {
+                //       handleFolderSelect(folder);
+                //     }
+                //   }}
+                //   className={({ isActive }) =>
+                //     `py-1 px-2 flex items-center rounded cursor-pointer ${isActive && !editingFolderId && openMenuId !== folder.id
+                //       ? "bg-blue-500 text-white"
+                //       : "text-[#434A60]"
+                //     }`
+                //   }
+                // >
+                //   <div className="flex justify-between w-full relative items-center">
+                //     {editingFolderId === folder.id ? (
+                //       <>
+                //         <input
+                //           type="text"
+                //           value={editFolderName}
+                //           onChange={(e) => setEditFolderName(e.target.value)}
+                //           placeholder="Enter new folder name"
+                //           className="border p-2 rounded w-full mr-2 text-black"
+                //         />
+                //         <button
+                //           className="text-green-500 ml-2"
+                //           onClick={(e) => {
+
+                //             handleEditFolder(); // Save action
+                //             setEditingFolderId(null); // Exit editing mode
+                //             e.preventDefault();
+                //             e.stopPropagation();
+                //             setIsOpen(true);
+                //           }}
+                //         >
+                //           <Check />
+                //         </button>
+                //         <button
+                //           className="text-red-500 ml-2"
+                //           onClick={(e) => {
+
+                //             setEditingFolderId(null); // Cancel editing
+                //             setEditFolderName(""); // Reset folder name
+                //             e.preventDefault();
+                //             e.stopPropagation();
+                //             setIsOpen(true);
+                //           }}
+                //         >
+                //           <X />
+                //         </button>
+                //       </>
+                //     ) : (
+                //       <>
+                //         <span className="flex gap-2 items-center truncate-text">
+                //           <img
+                //             src={
+                //               isActive && !editingFolderId
+                //                 ? WhiteFolderNotch
+                //                 : FolderNotch
+                //             }
+                //             alt="Folder"
+                //             className="h-6 font-bold"
+                //           />
+                //           {folder.name}
+                //         </span>
+                //         <button
+                //           onClick={(e) => {
+                //             // e.preventDefault();
+                //             toggleEllipses(folder.id);
+                //             e.preventDefault();
+                //             e.stopPropagation();
+                //             setIsOpen(true);
+                //           }}
+                //         >
+                //           <EllipsisVertical className="font-thin h-5" />
+                //         </button>
+                //       </>
+                //     )}
+
+                //     {/* Menu Options */}
+                //     {openMenuId === folder.id && !editingFolderId && (
+                //       <div className="absolute top-full right-0 mt-2 w-32 bg-white shadow-lg rounded-lg text-black z-20">
+                //         <button
+                //           className="w-full px-4 py-2 text-left hover:bg-gray-100"
+                //           onClick={(e) => {
+                //             setEditingFolderId(folder.id); // Enter editing mode
+                //             setEditFolderName(folder.name);
+                //             e.preventDefault();
+                //             e.stopPropagation();
+                //             setIsOpen(true);
+                //           }}
+                //         >
+                //           Edit
+                //         </button>
+                //         <button
+                //           className="w-full px-4 py-2 text-left hover:bg-gray-100"
+                //           onClick={(e) => {
+                //             setDeletebutton(true); // Open Delete Confirmation Modal
+                //             setSelectedFolder(folder.id); // Set Selected Folder
+                //             e.preventDefault();
+                //             e.stopPropagation();
+                //             setIsOpen(true);
+                //           }}
+                //         >
+                //           Delete
+                //         </button>
+                //       </div>
+                //     )}
+                //   </div>
+                // </NavLink>
                 <NavLink
-                  key={folder.id}
                   to={`/folder/${folder.id}`}
+                  className={({ isActive }) =>
+                    `py-1 px-2 flex items-center rounded cursor-pointer ${isActive && !editingFolderId ? "bg-blue-500 text-white" : "text-[#434A60]"
+                    }`
+                  }
                   onClick={(e) => {
                     if (openMenuId === folder.id) {
                       e.preventDefault();
                     } else {
                       handleFolderSelect(folder);
-                      setIsOpen(false); // Close the parent menu
                     }
                   }}
-                  className={({ isActive }) =>
-                    `py-1 px-2 flex items-center rounded cursor-pointer ${isActive ? "bg-blue-500 text-white" : "text-[#434A60]"}`
-                  }
                 >
                   {({ isActive }) => (
-                    <div className="flex justify-between w-full relative">
-                      <span className="flex gap-2">
-                        {/* Conditionally render the image based on isActive */}
-                        <img
-                          src={isActive ? WhiteFolderNotch : FolderNotch} // Use active/inactive images
-                          alt="Folder"
-                          className="h-6 font-bold"
-                        />
-                        {folder.name}
-                      </span>
+                    <div className="flex justify-between w-full relative items-center">
+                      {editingFolderId === folder.id ? (
+                        <>
+                          <input
+                            type="text"
+                            value={editFolderName}
+                            onChange={(e) => setEditFolderName(e.target.value)}
+                            placeholder="Enter new folder name"
+                            className="border p-2 rounded w-full mr-2 text-black"
+                          />
+                          <button
+                            className="text-green-500 ml-2"
+                            onClick={(e) => {
 
-                      <button
-                        className="ellipsis cursor-pointer px-3 "
-                        onClick={(e) => {
-                          e.preventDefault();
-                          e.stopPropagation();
-                          toggleEllipses(folder.id);
-                          setIsOpen(true);
-                        }}
-                      >
-                        <EllipsisVertical className="font-thin h-5" />
-                      </button>
+                              handleEditFolder(); // Save action
+                              setEditingFolderId(null); // Exit editing mode
+                              e.preventDefault();
+                              e.stopPropagation();
+                              setIsOpen(true);
+                            }}
+                          >
+                            <Check />
+                          </button>
+                          <button
+                            className="text-red-500 ml-2"
+                            onClick={(e) => {
+                      
+                              e.preventDefault();
+                              e.stopPropagation();
+                              setIsOpen(true);
+                              setEditingFolderId(null); // Cancel editing
+                              setEditFolderName(""); // Reset folder name
+                            }}
+                          >
+                            <X />
+                          </button>
+                        </>
+                      ) : (
+                        <>
+                          <span className="flex gap-2 items-center truncate-text">
+                            <img
+                              src={
+                                isActive && !editingFolderId
+                                  ? WhiteFolderNotch
+                                  : FolderNotch
+                              }
+                              alt="Folder"
+                              className="h-6 font-bold"
+                            />
+                            {folder.name}
+                          </span>
+                          <button
+                            onClick={(e) => {
+                        
+                              e.preventDefault();
+                              e.stopPropagation();
+                              setIsOpen(true);
+                              toggleEllipses(folder.id);
+                            }}
+                          >
+                            <EllipsisVertical className="font-thin h-5" />
+                          </button>
+                        </>
+                      )}
 
                       {/* Menu Options */}
-                      {openMenuId === folder.id && (
+                      {openMenuId === folder.id && !editingFolderId && (
                         <div className="absolute top-full right-0 mt-2 w-32 bg-white shadow-lg rounded-lg text-black z-20">
                           <button
                             className="w-full px-4 py-2 text-left hover:bg-gray-100"
                             onClick={(e) => {
-                              e.stopPropagation(); // Prevent closing when clicking on the menu items
-                              setOpenMenuId(null); // Close the menu
+                              setEditingFolderId(folder.id); // Enter editing mode
+                              setEditFolderName(folder.name);
+                              e.preventDefault();
+                              e.stopPropagation();
+                              setIsOpen(true);
                             }}
                           >
                             Edit
                           </button>
                           <button
                             className="w-full px-4 py-2 text-left hover:bg-gray-100"
-                            onClick={(e) => {
-                              e.stopPropagation(); // Prevent parent click handlers
+                            onClick={() => {
                               setDeletebutton(true); // Open Delete Confirmation Modal
                               setSelectedFolder(folder.id); // Set Selected Folder
                             }}
@@ -604,7 +830,7 @@ const MobileSidebar = ({ onFolderSelect }) => {
           {/* Add other sections here */}
 
           {/* Designees Section */}
-          <div className="">
+          {/* <div className="">
             <h2 className="font-semibold text-[#667085] text-xs mt-2">
               {designers.length} Designees
               {designers.length > 3 && (
@@ -634,7 +860,7 @@ const MobileSidebar = ({ onFolderSelect }) => {
               )}
             </ul>
             {/* Add Designer Button */}
-            <button
+          {/* <button
               onClick={() => {
                 if (isMembershipActive) {
                   setShowDesignerPopup(true);
@@ -649,10 +875,10 @@ const MobileSidebar = ({ onFolderSelect }) => {
             >
               <Plus className="mr-2" />
               Add Designer
-            </button>
+            </button>  */}
 
-            {/* Popup for Adding Designee */}
-            {showDesignerPopup && (
+          {/* Popup for Adding Designee */}
+          {/* {showDesignerPopup && (
               <div className="fixed inset-0 z-50 flex items-center justify-center bg-gray-800 bg-opacity-50">
                 <div className="bg-white p-6 rounded-lg shadow-lg w-96">
                   <div className="flex justify-between items-center border-b pb-3">
@@ -708,37 +934,181 @@ const MobileSidebar = ({ onFolderSelect }) => {
                   >
                     Invite to Cumulus
                   </button>
-                </div>
+                </div> */}
+          {/* </div> */}
+          {/* )} */}
+          {/* </div> */}
+
+
+          {/* <h2 className="font-semibold text-[#667085] text-xs mt-2">
+          {designers.length} Designees
+          {designers.length > 3 && (
+            <button
+              onClick={() => {
+                setViewAllDesigners(!viewAllDesigners);
+                setOpenMenuId(null);
+              }}
+              className="text-blue-500 text-xs float-right"
+            >
+              {viewAllDesigners ? "View Less" : "View All"}
+            </button>
+          )}
+        </h2>
+        <ul>
+          {(viewAllDesigners ? designers : designers.slice(0, 3)).map(
+            (designer, index) => (
+              <li
+                key={index}
+                className="text-gray-700 py-1 hover:text-blue-500 flex items-center cursor-pointer"
+              >
+                <User className="mr-2" />
+                {designer}
+              </li>
+            )
+          )}
+        </ul> */}
+    <h2 className="font-semibold text-[#667085] text-xs mt-2">
+        {designers.length} Designees
+        {designers.length > 3 && (
+          <button
+            onClick={() => {
+              setViewAllDesigners(!viewAllDesigners);
+            }}
+            className="text-blue-500 text-xs float-right"
+          >
+            {viewAllDesigners ? "View Less" : "View All"}
+          </button>
+        )}
+      </h2>
+      <ul>
+        {(viewAllDesigners ? designers : designers.slice(0, 3)).map((designer, index) => (
+          <li
+            key={index}
+            className="text-gray-700 py-1 hover:text-blue-500 flex items-center cursor-pointer"
+          >
+            <User className="mr-2" />
+            {designer.name} {/* Display designer's name */}
+          </li>
+        ))}
+      </ul>
+    <>
+    <button
+          onClick={() => {
+            if (isMembershipActive) {
+              setOpenMenuId(null);
+              setShowDesignerPopup(true);
+            } else {
+              setOpenMenuId(null);
+              setDeletebutton2(true);
+            }
+          }}
+          className="flex items-center w-full bg-gray-200 p-1 text-black !mt-1 !mb-3 rounded-md justify-center border text-xs"
+        >
+          <Plus className="mr-2 w-5 h-5" />
+          Add Designer
+        </button> 
+
+        {/* <DesignerPopup
+        isVisible={showDesignerPopup}
+        onClose={() => setShowDesignerPopup(false)}
+        designeeName={designeeName}
+        setDesigneeName={setDesigneeName}
+        designeePhone={designeePhone}
+        setDesigneePhone={setDesigneePhone}
+        designeeEmail={designeeEmail}
+        setDesigneeEmail={setDesigneeEmail}
+        handleAddDesignee={handleAddDesignee}
+      /> */}
+        </>
+        {/* {showDesignerPopup && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-gray-800 bg-opacity-50">
+            <div className="bg-white p-6 rounded-lg shadow-lg w-96">
+              <div className="flex justify-between items-center border-b pb-3">
+                <h3 className="text-lg font-semibold">Add Designee</h3>
+                <button
+                  onClick={() => setShowDesignerPopup(false)}
+                  className="text-gray-500"
+                >
+                  ✕
+                </button>
               </div>
-            )}
+              <div className="mt-4">
+                <div className="flex items-center justify-center mb-4">
+                  <div className="w-24 h-24 rounded-full border-dashed border-2 flex items-center justify-center text-gray-500">
+                    <Camera className="h-6 w-6" />
+                  </div>
+                </div>
+                <label className="block mb-2 text-sm font-medium">
+                  Enter Designee Name
+                </label>
+                <input
+                  type="text"
+                  placeholder="Designee Name"
+                  value={designeeName}
+                  onChange={(e) => setDesigneeName(e.target.value)}
+                  className="border p-2 rounded w-full mb-3"
+                />
+                <label className="block mb-2 text-sm font-medium">
+                  Enter Designee Phone Number
+                </label>
+                <input
+                  type="text"
+                  placeholder="Designee Phone Number"
+                  value={designeePhone}
+                  onChange={(e) => setDesigneePhone(e.target.value)}
+                  className="border p-2 rounded w-full mb-3"
+                />
+                <label className="block mb-2 text-sm font-medium">
+                  Enter Designee Email
+                </label>
+                <input
+                  type="email"
+                  placeholder="Designee Email"
+                  value={designeeEmail}
+                  onChange={(e) => setDesigneeEmail(e.target.value)}
+                  className="border p-2 rounded w-full mb-4"
+                />
+              </div>
+              <button
+                onClick={handleAddDesignee}
+                //onClick={() => setShowDesignerPopup(false)}
+                className="w-full bg-blue-500 text-white py-2 rounded-md hover:bg-blue-600"
+              >
+                Invite to Cumulus
+              </button>
+
+              
+            </div>
+            
           </div>
+        )} */}
 
           {/* Voice memo */}
           <div className="">
-            <h2 className="font-normal text-[#667085] mt-2">Voice memo</h2>
+            <h2 className="font-semibold text-[#667085] text-sm mt-2">Voice memo</h2>
             <NavLink
-          to="/voicememo"
-          onClick={() => setOpenMenuId(null)}
-          className={({ isActive }) =>
-            `flex mb-2 cursor-pointer p-2 rounded ${isActive ? "bg-blue-500 text-white" : "text-[#434A60]"}`
-          }
-        >
-          {({ isActive }) => (
-            <span className="flex items-center h-6">
-              <img
-                src={isActive ? whiteemic : Microphone} // Dynamically change image based on isActive
-                alt="Microphone Icon"
-                className="h-6 w-6" // Adjust image size
-              />
-              <h2 className="ml-3">Create A Voicememo</h2>
-            </span>
-          )}
-        </NavLink>
+              to="/voicememo"
+              onClick={() => setOpenMenuId(null)}
+              className={({ isActive }) =>
+                `flex mb-2 cursor-pointer p-2 rounded ${isActive ? "bg-blue-500 text-white" : "text-[#434A60]"}`
+              }
+            >
+              {({ isActive }) => (
+                <span className="flex items-center h-6">
+                  <img
+                    src={isActive ? whiteemic : Microphone} // Dynamically change image based on isActive
+                    alt="Microphone Icon"
+                    className="h-6 w-6" // Adjust image size
+                  />
+                  <h2 className="ml-3">Create A Voicememo</h2>
+                </span>
+              )}
+            </NavLink>
           </div>
 
           {/* Transfer */}
           <div>
-            <h2 className="font-normal text-[#667085] ">Transfer</h2>
+            <h2 className="font-semibold mt-1 text-sm text-[#667085]">Transfer</h2>
             <div className="text-[#434A60] py-1 pl-2 hover:text-blue-500 cursor-pointer flex"
               onClick={() => {
                 setIsOpen(false);
@@ -754,7 +1124,7 @@ const MobileSidebar = ({ onFolderSelect }) => {
           {/* Shared Files */}
 
           <div className="">
-            <h2 className="font-normal text-[#667085] mt-1">Share file</h2>
+            <h2 className="font-semibold text-[#667085] text-sm mt-2">Shared file</h2>
             <NavLink
               to="/SharedFiles"
               className={({ isActive }) =>
@@ -769,7 +1139,7 @@ const MobileSidebar = ({ onFolderSelect }) => {
                 }}
               >
                 <Users className="" />
-                <h2 className="ml-3">Share With Me</h2>
+                <h2 className="ml-3">Shared With Me</h2>
               </span>
 
             </NavLink>
@@ -778,7 +1148,7 @@ const MobileSidebar = ({ onFolderSelect }) => {
           <div className="flex-grow"></div>
           <div className="mt-auto ">
             <button className="flex w-full  p-2 text-[#667085]  rounded-md "
-              onClick={() => setIsOpen(false)}
+              onClick={handleClickhelp}
             >
               <span className="flex gap-2">
                 <CircleAlertIcon />

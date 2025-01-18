@@ -1,4 +1,5 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useContext } from "react";
+import axios from "axios";
 import PropTypes from "prop-types";
 import { Search, Bell, ZapIcon, LogOut } from "lucide-react";
 import ClockClockwise from "../../assets/ClockClockwise.png";
@@ -9,38 +10,63 @@ import { motion } from "framer-motion";
 import profile from "../../assets/profile.jpg";
 import MobileSidebar from "../../Component/Main/MobileSidebar";
 import fetchUserData from "./fetchUserData";
-
-const Navbar = ({ onFolderSelect }) => {
+import { UserContext } from '../utils/UserContext';
+import { ProfileContext } from '../utils/ProfileContext';
+const Navbar = ({ onFolderSelect,setSearchQuery }) => {
     const [showSearch, setShowSearch] = useState(false);
     const [userData, setUserData] = useState(null);
     const [error, setError] = useState(null);
     const [isMembershipActive, setIsMembershipActive] = useState(false);
-    const [username, setUsername] = useState("");
+    // const [username, setUsername] = useState("");
     const [isProfileDropdownOpen, setIsProfileDropdownOpen] = useState(false);
 
+    const { username } = useContext(UserContext); 
+    const { profilePicture } = useContext(ProfileContext); 
+
     const navigate = useNavigate();
+
+    const gotoprofile = () => {
+        navigate("/my-profile"); // Navigate to the "About" page
+      };
     const dropdownVariants = {
         hidden: { opacity: 0, y: -10 },
         visible: { opacity: 1, y: 0 },
         exit: { opacity: 0, y: -10 },
     };
-    useEffect(() => {
-        const getUserData = async () => {
-            try {
-                const data = await fetchUserData();
-                if (!data?.user) {
-                    throw new Error("Invalid response structure");
-                }
+    // const getUserData = async () => {
+    //     try {
+    //         const data = await fetchUserData();
+    //         if (!data?.user) {
+    //             throw new Error("Invalid response structure");
+    //         }
 
-                setUserData(data);
-                setIsMembershipActive(data.user.activeMembership);
-                setUsername(data.user.username);
-            } catch (err) {
-                setError(err.message || "Failed to fetch user data");
-            }
-        };
-        getUserData();
-    }, []);
+    //         setUserData(data);
+    //         setIsMembershipActive(data.user.activeMembership);
+    //         // setUsername(data.user.username);
+    //     } catch (err) {
+    //         setError(err.message || "Failed to fetch user data");
+    //     }
+    // };
+
+// Fetch the profile picture when the component mounts
+// const fetchProfilePicture = async () => {
+//     try {
+//       const response = await axios.get(`${API_URL}/api/auth/get-profile-picture`, {
+//         headers: {
+//           Authorization: `Bearer ${localStorage.getItem("token")}`, // Assuming you store the token in localStorage
+//         },
+//       });
+//     //   setProfilePicture(response.data.profilePicture); // Set the profile picture URL in state
+//     } catch (error) {
+//       console.error("Error fetching profile picture:", error);
+//     }
+//   };
+
+    // useEffect(() => {
+        
+    //     // getUserData();
+    //     fetchProfilePicture();
+    //   }, []); 
 
     async function logout() {
         try {
@@ -71,9 +97,9 @@ const Navbar = ({ onFolderSelect }) => {
         }
     }
 
-    const toggleDropdown = () => {
-        setIsProfileDropdownOpen(!isProfileDropdownOpen);
-    };
+    // const toggleDropdown = () => {
+    //     setIsProfileDropdownOpen(!isProfileDropdownOpen);
+    // };
 
     return (
         <nav className="flex items-center justify-between px-0 md:px-8 py-3 bg-white shadow-md relative">
@@ -87,6 +113,7 @@ const Navbar = ({ onFolderSelect }) => {
                         type="text"
                         placeholder="Search"
                         className="flex-grow px-3 py-2 rounded-md focus:outline-none"
+                        onChange={(e) => setSearchQuery(e.target.value)} 
                     />
                 </div>
 
@@ -114,7 +141,7 @@ const Navbar = ({ onFolderSelect }) => {
 
             </div>
             <div className="flex items-center space-x-2 md:space-x-4 px-3 relative">
-                {!isMembershipActive && (
+                {isMembershipActive && (
                     <Link to="/subscription">
                         <span className="flex border-2 border-blue-500 p-0.5 rounded-sm cursor-pointer">
                             <ZapIcon className="h-5 w-5 md:h-6 md:w-6 fill-blue-500 stroke-none" />
@@ -134,17 +161,19 @@ const Navbar = ({ onFolderSelect }) => {
                 <div className="relative">
                     <div
                         className="flex items-center cursor-pointer"
-                        onClick={toggleDropdown}
+                        onClick={gotoprofile}
                     >
                         <img
-                            src={profile}
+                            src={profilePicture || 'default-profile-pic.png'}
                             alt="User"
                             className="h-8 w-8 rounded-full object-cover"
                         />
-                        <p className="text-black mt-1 ml-1 hidden md:block">{username}</p>
+                        <p className="text-black mt-1 ml-1 hidden md:block">
+          {username ? username : 'Guest'}
+        </p>
                     </div>
-                    {isProfileDropdownOpen && (
-                        <motion.div
+                    {/* {isProfileDropdownOpen && ( */}
+                        {/* <motion.div
                             className="absolute right-0 mt-2  border border-gray-200 rounded-md py-2 bg-blue-500 text-white shadow-lg w-28 z-10"
                             initial="hidden"
                             animate="visible"
@@ -155,11 +184,18 @@ const Navbar = ({ onFolderSelect }) => {
                                 onClick={logout}
                                 className="flex items-center justify-between  hover:text-red-600  cursor-pointer font-medium rounded-md px-4 py-2 w-full transition duration-300"
                             >
-                                {/* <LogOut className="w-5 h-5 mr-2" /> */}
+                                
                                 <span>Sign Out</span>
                             </button>
-                        </motion.div>
-                    )}
+                            <button
+                                onClick={gotoprofile}
+                                className="flex items-center justify-between  hover:text-red-600  cursor-pointer font-medium rounded-md px-4 py-2 w-full transition duration-300"
+                            >
+                                
+                                <span>My Profile</span>
+                            </button>
+                        </motion.div> */}
+                    {/* // )} */}
                 </div>
             </div>
         </nav>

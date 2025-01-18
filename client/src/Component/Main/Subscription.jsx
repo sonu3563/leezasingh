@@ -1,173 +1,311 @@
 import React, { useState, useEffect } from "react";
-import axios from "axios";
 import { Check } from "lucide-react";
-import { API_URL } from "../utils/Apiconfig";
-import {loadStripe} from '@stripe/stripe-js';
-const Subscription = () => {
-  const [subscriptions, setSubscriptions] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
-
+import axios from "axios";
+// import { Link as ScrollLink } from "react-scroll";
+import { Link as ScrollLink } from "react-scroll";
+import tic from "../landing/Assets/tick.png"
+import { API_URL } from "../../Component/utils/Apiconfig";
+import { Link, useNavigate } from "react-router-dom";
+function CompareTable({ onClose }) {
   useEffect(() => {
-    const fetchSubscriptions = async () => {
-      try {
-        const response = await axios.get(`${API_URL}/api/subscriptions/get-subscriptions`);
-        setSubscriptions(response.data);
-        setLoading(false);
-      } catch (error) {
-        setError("Error fetching subscriptions. Please try again later.");
-        setLoading(false);
-      }
+    // Disable background scrolling when the component is mounted
+    document.body.style.overflow = "hidden";
+    // Re-enable background scrolling when the component is unmounted
+    return () => {
+      document.body.style.overflow = "auto";
     };
-    fetchSubscriptions();
   }, []);
-
-  const handleUpgradePlan = async (priceId, subscriptionName) => {
-    const stripe = await loadStripe("pk_test_51QL7nCLN8J6rO1tf5uQJRmggnJy9bm48D7N8wkDfjLHRAO4AFB035NaMKxmfdEMHH0uquB0loA8NA2HItcQvukaU00ZYuNSMxt");
-  console.log("priceId",priceId);
-  console.log("subscriptionName",subscriptionName);
-    const body = {
-      planId: priceId, // Send the correct Stripe Price ID
-      subscriptionName: subscriptionName, // Send the subscription name
-    };
-  
-    try {
-      const response = await fetch(`${API_URL}/api/stripe/create-checkout-session`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(body),
-      });
-  
-      const session = await response.json();
-  
-      const result = await stripe.redirectToCheckout({
-        sessionId: session.id,
-      });
-  
-      if (result.error) {
-        console.error(result.error);
-      }
-    } catch (error) {
-      console.error("Error during checkout session creation", error);
-    }
-  };
-  
-
-
-
-
-  if (loading) {
-    return <div className="text-center p-8">Loading subscriptions...</div>;
-  }
-
-  if (error) {
-    return <div className="text-center text-red-500 p-8">{error}</div>;
-  }
-
   const tableData = [
-    { feature: "20 GB Storage", foundation: true, legacy: false, heritage: false },
-    { feature: "Basic Inheritance", foundation: true, legacy: false, heritage: false },
-    { feature: "Basic Document Sharing", foundation: true, legacy: false, heritage: false },
-    { feature: "Standard Support", foundation: true, legacy: false, heritage: false },
-    { feature: "Advanced Encryption", foundation: true, legacy: true, heritage: true },
-    { feature: "Google Drive Integration", foundation: true, legacy: true, heritage: true },
-    { feature: "Priority", foundation: false, legacy: true, heritage: false },
-    { feature: "50 GB Storage", foundation: false, legacy: true, heritage: true },
-    { feature: "Top Compliance Level Encryption", foundation: false, legacy: true, heritage: true },
-    { feature: "Advance Sharing Controls", foundation: false, legacy: true, heritage: true },
-    { feature: "Dropbox Integration", foundation: false, legacy: true, heritage: true },
-    { feature: "Advance Inheritance Options", foundation:false, legacy: true, heritage: true },
-    { feature: "Automatic Photo Upload", foundation: false, legacy: true, heritage: true },
-    { feature: "Voice Memo", foundation: false, legacy: true, heritage: true },
-    { feature: "Notepad", foundation: false, legacy: true, heritage: true },
-    { feature: "Custom Inheritance Options", foundation: false, legacy: false, heritage: true },
-    { feature: "Full Suite of Integration", foundation: false, legacy: false, heritage: true },
-    { feature: "Custom Storage", foundation: false, legacy: false, heritage: true },
-    { feature: "24/7 Dedicated Support", foundation: false, legacy: false, heritage: true },
-    { feature: "Customizable Solutions", foundation: false, legacy: false, heritage: true },
+    { feature: "Storage", plans: ["20 GB", "50 GB", "Custom Storage"] },
+    { feature: "Advanced Encryption", plans: [true, true, true] },
+    { feature: "Basic Document Sharing", plans: [true, true, true] },
+    { feature: "Basic Inheritance", plans: [true, true, true] },
+    { feature: "Google Drive Integration", plans: [true, true, true] },
+    { feature: "Standard Support", plans: [true, true, true] },
+    { feature: "Top Compliance Level Encryption", plans: [false, true, true] },
+    { feature: "Advanced Sharing Controls", plans: [false, true, true] },
+    { feature: "Advanced Inheritance Options", plans: [false, true, true] },
+    { feature: "Full Suite of Integrations", plans: [false, true, true] },
+    { feature: "Automatic Photo Upload", plans: [false, true, true] },
+    { feature: "Priority Support", plans: [false, false, true] },
+    { feature: "Voice Memo", plans: [false, false, true] },
+    { feature: "Notepad", plans: [false, false, true] },
+    { feature: "Dropbox Integration", plans: [false, false, true] },
+    { feature: "Customizable Solutions", plans: [false, false, true] },
   ];
-
+  const planNames = [
+    "Foundation (Standard)",
+    "Legacy (Premium)",
+    "Heritage (Enterprise)",
+  ];
   return (
-    <>
-      <div className="flex flex-col items-center p-8">
-        <h2 className="text-2xl font-bold mb-4">Subscription</h2>
-        <p className="text-gray-500 mb-8">Upgrade to Cumulus Premium for exclusive features!</p>
-
-        {/* Subscription Plans Section */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {subscriptions.map((plan) => (
-            <div
-              key={plan._id}
-              className="border rounded-md p-6 shadow-sm hover:shadow-lg transition"
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50 p-2">
+      <div className=" rounded-lg shadow-lg max-w-[90%] w-full">
+        <div className="h-10 w-full flex justify-end min-[600px]:hidden">
+          <h1 className=""><button
+            onClick={onClose}
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 20 20"
+              fill="currentColor"
+              className="w-8 h-8 text-white"
             >
-              <h2 className="text-xl font-bold mb-2">
-                ${plan.cost.monthly ? `${plan.cost.monthly}/mo` : "Custom Pricing"}
-              </h2>
-              <h3 className="text-gray-600 mb-4">{plan.subscription_name}</h3>
-              <ul className="mb-4">
-                <li>
-                  <strong>Storage:</strong> {plan.features.storage}
-                </li>
-                <li>
-                  <strong>Encryption:</strong> {plan.features.encryption}
-                </li>
-                <li>
-                  <strong>Document Sharing:</strong> {plan.features.document_sharing}
-                </li>
-                <li>
-                  <strong>Inheritance Features:</strong> {plan.features.inheritance_features}
-                </li>
-                <li>
-                  <strong>Integrations:</strong> {plan.features.integrations.join(", ")}
-                </li>
-                <li>
-                  <strong>Extra Features:</strong> {plan.features.extra_features.join(", ")}
-                </li>
-              </ul>
-              <button
-                className="w-full py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600"
-                onClick={() => handleUpgradePlan(plan.cost.monthly, plan.subscription_name)}  
-              >
-                {plan.cost.monthly ? "Upgrade Plan" : "Contact Us"}
-              </button>
-            </div>
-          ))}
+              <path
+                fillRule="evenodd"
+                d="M4.293 4.293a1 1 0 011.414 0L10 7.586l4.293-4.293a1 1 0 111.414 1.414L11.414 9l4.293 4.293a1 1 0 11-1.414 1.414L10 10.414l-4.293 4.293a1 1 0 11-1.414-1.414L8.586 9 4.293 4.707a1 1 0 010-1.414z"
+                clipRule="evenodd"
+              />
+            </svg>
+          </button></h1>
         </div>
-
-        {/* Table of Features */}
-        <div className="overflow-x-auto min-h-screen flex justify-center my-4 mb-10 mx-1 md:mx-20">
-        <table className="table-auto min-w-full border border-gray-300 text-left text-xs md:text-sm">
-            <thead>
-              <tr className="bg-gray-100">
-                <th className="md:px-4 py-2">Features</th>
-                <th className="md:px-4 py-2">Foundation (Standard)</th>
-                <th className="md:px-4 py-2">Legacy (Premium)</th>
-                <th className="md:px-4 py-2">Heritage (Enterprise)</th>
+        <div className="overflow-y-auto bg-white rounded-xl overflow-x-auto md:max-h-[80vh] max-h-[80vh]">
+          <table className="table-auto w-[100%] text-sm sm:text-xs md:text-sm lg:text-base z-50">
+            <thead className="sticky top-0 z-50 ">
+              <tr>
+                <th className="sticky left-0 rounded-tl-xl border-r-1 p-4 md:p-8 border-white sm:p-2 text-center bg-black text-white w-[10%] md:w-[25%]">
+                  Features
+                </th>
+                {planNames.map((plan, index) => (
+                  <th
+                    key={index}
+                    className={` border-r-2 border-white p-4 md:p-8 text-center bg-black text-white ${index === planNames.length - 1 ? 'rounded-tr-xl w-[25%]' : ''
+                      } ${index === 0 ? 'border-l-2' : ""}`}
+                    style={{
+                      position:
+                        index === 0 ? "sticky" : "",
+                      left:
+                        index === 0 ? "119px" : "",
+                      zIndex:
+                        index === 0 ? "50" : "",
+                    }}
+                  >
+                    <div className="flex items-center justify-center relative">
+                      <div className="">
+                        {plan}</div>
+                      {index === planNames.length - 1 && (
+                        <div className=" h-5 w-10 max-[600px]:hidden">
+                          <button
+                            className="text-white text-sm absolute -top-6 -right-6"
+                            onClick={onClose}
+                          >
+                            <svg
+                              xmlns="http://www.w3.org/2000/svg"
+                              viewBox="0 0 20 20"
+                              fill="currentColor"
+                              className="w-8 h-8"
+                            >
+                              <path
+                                fillRule="evenodd"
+                                d="M4.293 4.293a1 1 0 011.414 0L10 7.586l4.293-4.293a1 1 0 111.414 1.414L11.414 9l4.293 4.293a1 1 0 11-1.414 1.414L10 10.414l-4.293 4.293a1 1 0 11-1.414-1.414L8.586 9 4.293 4.707a1 1 0 010-1.414z"
+                                clipRule="evenodd"
+                              />
+                            </svg>
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  </th>
+                ))}
               </tr>
             </thead>
             <tbody>
-              {tableData.map((row, index) => (
-                <tr key={index} className={`${index % 2 === 0 ? "bg-white" : "bg-gray-50"}`}>
-                  <td className="md:px-4 py-2">{row.feature}</td>
-                  <td className="md:px-4 py-2 text-center">
-                    {row.foundation ? <Check className=" text-center text-green-500 font-bold" /> : ""}
-                  </td>
-                  <td className="md:px-4 py-2 text-center">
-                    {row.legacy ? <Check className=" text-center text-green-500 text-lg font-bold" /> : ""}
-                  </td>
-                  <td className="md:px-4 py-2 text-center">
-                    {row.heritage ? <Check className=" text-center text-green-500 font-bold" /> : ""}
-                  </td>
+              {tableData.map((row, rowIndex) => (
+                <tr key={rowIndex}>
+                  <td className="border-2 sticky left-0 z-20 bg-white font-semibold border-gray-300 p-4 sm:p-2 md:py-6 w-[10%] md:w-[25%] ">{row.feature}</td>
+                  {row.plans.map((plan, planIndex) => (
+                    <td
+                      key={planIndex}
+                      className="border-2 border-gray-300 p-2 sm:p-1 text-center"
+                      style={{
+                        backgroundColor:
+                          planIndex === 0
+                            ? '#F9FAFB' // 1st column (lightest white)
+                            : planIndex === 1
+                              ? '#eef8ff' // 2nd column (lightest red)
+                              : planIndex === 2
+                                ? '#F9FAFB' // 3rd column (lightest green)
+                                : '#F9FAFB', // 4th column (lightest red)
+                        position:
+                          planIndex === 0 ? "sticky" : "",
+                        left:
+                          planIndex === 0 ? "119px" : "",
+                        zIndex:
+                          planIndex === 0 ? "40" : planIndex === 1 ? "40" : "",
+                      }}
+                    >
+                      {plan === true ? (
+                        <span className="text-blue-100 flex items-center justify-center"><img src={tic} className="h-8 w-8" /></span>
+                      ) : plan === false ? (
+                        <span></span>
+                      ) : (
+                        plan
+                      )}
+                    </td>
+                  ))}
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
       </div>
-    </>
+    </div>
   );
-};
-
+}
+function SubscriptionCard({ type, data, isActive, onHover }) {
+  const navigate = useNavigate();
+  
+  return (
+    <div
+      className={`bg-white shadow-lg rounded-lg p-4 border-2 ${isActive ? "border-blue-500" : "border-transparent"
+        } hover:border-blue-500 transition-all`}
+      onMouseEnter={() => onHover(type)}
+      onMouseLeave={() => onHover(null)}
+    >
+      <h2 className="text-xl font-semibold mb-4">
+        {data.subscription_name}
+        {/* {data.recommended && (
+          <span className="bg-blue-500 text-white text-xs px-2 py-1 rounded-full ml-2">
+            Recommended
+          </span>
+        )} */}
+      </h2>
+      <p className="text-2xl font-bold mb-4">
+        {data.price === "Custom Pricing" ? data.price : `$${data.price}`}
+        {data.period && <span className="text-sm"> {data.period}</span>}
+      </p>
+      <div className="plan">
+        {data.buttonLabel === "Contact Us" ? (
+          <ScrollLink
+            to="assistance" // ID of the target section
+            smooth={true}
+            duration={500}
+            className="w-full bg-blue-500 text-white py-2 rounded-lg mb-4 cursor-pointer block text-center"
+          >
+            {data.buttonLabel}
+          </ScrollLink>
+        ) : (
+          <button
+            className="w-full bg-blue-500 text-white py-2 rounded-lg mb-4"
+            onClick={() => navigate('/Signup')} // Redirect to /Signup
+          >
+            {data.buttonLabel}
+          </button>
+        )}
+      </div>
+      <ul className="space-y-2">
+        {data.features.map((feature, index) => (
+          <li key={index} className="flex items-center">
+            <Check className="text-green-500 mr-2" />
+            {feature}
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+function Subscription() {
+  const [hoveredPlan, setHoveredPlan] = useState(null);
+  const [plans, setPlans] = useState([]);
+  const [showTable, setShowTable] = useState(false);
+  const [isYearly, setIsYearly] = useState(false);
+  const navigate = useNavigate();
+  const togglePlan = () => {
+    setIsYearly((prev) => !prev);
+    setPlans((prevPlans) =>
+      prevPlans.map((plan) => {
+        if (plan.subscription_name === "Foundation (Standard)") {
+          return {
+            ...plan,
+            price: isYearly ? "4.99" : "4.99",
+            period: isYearly ? "/month" : "/month",
+          };
+        } else if (plan.subscription_name === "Legacy (Premium)") {
+          return {
+            ...plan,
+            price: isYearly ? "9.99" : "9.99",
+            period: isYearly ? "/month" : "/month",
+          };
+        }
+        return plan;
+      })
+    );
+  };
+  useEffect(() => {
+    axios
+      .get("https://cumulus.onrender.com/api/subscriptions/get-subscriptions")
+      .then((response) => {
+        const formattedPlans = response.data.map((plan) => ({
+          subscription_name: plan.subscription_name,
+          price: plan.cost.monthly || "Custom Pricing",
+          period: plan.cost.monthly ? "/month" : null,
+          features: [
+            plan.features.storage,
+            plan.features.encryption,
+            plan.features.document_sharing,
+            plan.features.inheritance_features,
+            ...plan.features.integrations,
+            ...plan.features.extra_features,
+          ],
+          buttonLabel: plan.cost.custom_pricing ? "Contact Us" : "Try Now",
+          to: plan.cost.custom_pricing ? "assistance" :"/Signup", 
+          recommended: plan.subscription_name === "Legacy (Premium)",
+        }));
+        setPlans(formattedPlans);
+      })
+      .catch((error) => console.error("Error fetching subscription data:", error));
+  }, []);
+  return (
+    <div className="bg-gray-100 py-10">
+      <h1 className="text-3xl font-bold font-serif text-center mb-6">
+        Cumulus Subscription
+      </h1>
+      <p className="text-center text-gray-600 mb-4">
+        Upgrade to Cumulus Premium for exclusive features, advanced tools, and
+        priority support!
+      </p>
+      <div className="flex justify-center items-center flex-row py-2 mb-2">
+        {/* Monthly Section */}
+        <span className="px-2 font-semibold">Monthly</span>
+        {/* Toggle Switch */}
+        <label className="relative inline-flex items-center cursor-pointer mx-2">
+          <input
+            type="checkbox"
+            className="sr-only peer"
+            checked={isYearly}
+            onChange={togglePlan}
+          />
+          <div className="w-11 h-6 bg-gray-600 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-blue-400 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-500"></div>
+        </label>
+        {/* Yearly Section */}
+        <div className="flex pt-4 flex-col items-start">
+          <span className="px-3 font-semibold">Yearly</span>
+          <span className=" text-blue-500 text-[0.7rem]">
+            (Save Upto 60%)
+          </span>
+        </div>
+      </div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 px-6 max-w-5xl mx-auto">
+        {plans.map((plan, index) => (
+          <SubscriptionCard
+            key={index}
+            type={plan.subscription_name}
+            data={plan}
+            isActive={hoveredPlan === plan.subscription_name}
+            onHover={setHoveredPlan}
+            onTryNow={() => navigate(plan.to)} // Pass navigation function
+          >
+          </SubscriptionCard>
+        ))}
+      </div>
+      <p
+        className="text-blue-500 cursor-pointer underline mt-6 text-center"
+        onClick={() => setShowTable(true)}
+      >
+        Compare All Subscription Prices
+      </p>
+      {showTable && <CompareTable onClose={() => setShowTable(false)} />}
+    </div>
+  );
+}
 export default Subscription;

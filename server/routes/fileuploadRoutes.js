@@ -1,11 +1,13 @@
 
 const express = require("express");
-const { S3Client, PutObjectCommand, DeleteObjectCommand, GetObjectCommand } = require("@aws-sdk/client-s3");
+const { S3Client, PutObjectCommand, DeleteObjectCommand, GetObjectCommand, ListObjectsV2Command } = require("@aws-sdk/client-s3");
 const { getSignedUrl } = require("@aws-sdk/s3-request-presigner");
 const axios = require("axios");
 const mongoose = require("mongoose");
 const multer = require("multer");
+const { sendEmail } = require('../email/emailUtils');
 const { Folder, File } = require("../models/userUpload");
+const { UserSharedFile, Userlogin } = require("../models/userModel");
 require("dotenv").config();
 const { encryptField, decryptField } = require("../utilities/encryptionUtils");
 const { authenticateToken } = require("../routes/userRoutes"); 
@@ -151,6 +153,97 @@ router.get("/get-folders", authenticateToken, async (req, res) => {
     res.status(500).json({ message: "Error retrieving folders.", error: error.message });
   }
 });
+router.post("/share-files", authenticateToken, async (req, res) => {
+  try {
+    const user_id = req.user.user_id;
+    const { file_id, designee, message, notify } = req.body;
+    designee.forEach(async function(to_user_id, index, arr) {
+      let result = to_user_id.value.indexOf("@");
+      if(result!="-1"){
+        let getData=await UserSharedFile.find({file_id, from_user_id: user_id, to_email_id: to_user_id.value});
+        if(getData.length==0){
+          if(notify==true){
+            await sendEmail({to: to_user_id.value, subject: "Regarding share file", body: message});
+          }
+          var userSharedFile=new UserSharedFile({file_id, from_user_id: user_id, to_email_id: to_user_id.value, access: "view"});
+          await userSharedFile.save();
+          res.status(200).json({success: true, designee});
+        }
+        else{
+          res.status(200).json({success: false, message: "You have already share the file!"});
+        }
+      }
+      else{
+        let getData=await UserSharedFile.find({file_id, from_user_id: user_id, to_user_id: to_user_id.value});
+        if(getData.length==0){
+          let to_user = await Userlogin.findById(to_user_id.value);
+          if(notify==true){
+            await sendEmail({to: to_user.email, subject: "Regarding share file", body: message});
+          }
+          var userSharedFile=new UserSharedFile({file_id, from_user_id: user_id, to_user_id: to_user_id.value, access: "view"});
+          await userSharedFile.save();
+          res.status(200).json({success: true, designee});
+        }
+        else{
+          res.status(200).json({success: false, message: "You have already share the file!"});
+        }
+      }
+    });
+  } catch (error) {
+    console.error("Error retrieving files:", error);
+    res.status(500).json({ message: "Error retrieving files.", error: error.message });
+  }
+});
+router.post("/share-folder", authenticateToken, async (req, res) => {
+  try {
+    const user_id = req.user.user_id;
+    const { folder_id, designee, message, notify } = req.body;
+    let files=await File.find({ folder_id });
+    files.forEach(async function(file, index, arr) {
+      var file_id=file._id;
+      designee.forEach(async function(to_user_id, index, arr) {
+        let result = to_user_id.value.indexOf("@");
+        if(result!="-1"){
+          let getData=await UserSharedFile.find({file_id, from_user_id: user_id, to_email_id: to_user_id.value});
+          if(getData.length==0){
+            if(notify==true){
+              await sendEmail({to: to_user_id.value, subject: "Regarding share file", body: message});
+            }
+            var userSharedFile=new UserSharedFile({file_id, from_user_id: user_id, to_email_id: to_user_id.value, access: "view"});
+            await userSharedFile.save();
+            //res.status(200).json({success: true, designee});
+          }
+        }
+        else{
+          let getData=await UserSharedFile.find({file_id, from_user_id: user_id, to_user_id: to_user_id.value});
+          if(getData.length==0){
+            let to_user = await Userlogin.findById(to_user_id.value);
+            if(notify==true){
+              await sendEmail({to: to_user.email, subject: "Regarding share file", body: message});
+            }
+            var userSharedFile=new UserSharedFile({file_id, from_user_id: user_id, to_user_id: to_user_id.value, access: "view"});
+            await userSharedFile.save();
+            //res.status(200).json({success: true, designee});
+          }
+        }
+      });
+    });
+    res.status(200).json({success: true});
+  } catch (error) {
+    console.error("Error retrieving files:", error);
+    res.status(500).json({ message: "Error retrieving files.", error: error.message });
+  }
+});
+router.post("/get-file-data", authenticateToken, async (req, res) => {
+  try {
+    const file_id = req.body.file_id;
+    const userSharedFile = await UserSharedFile.find({ file_id }).populate('to_user_id');
+    res.status(200).json({userSharedFile});
+  } catch (error) {
+    console.error("Error retrieving files:", error);
+    res.status(500).json({ message: "Error retrieving files.", error: error.message });
+  }
+});
 router.post("/get-files", authenticateToken, async (req, res) => {
   try {
     const user_id = req.user.user_id; 
@@ -260,68 +353,73 @@ router.post("/delete-folder", authenticateToken, async (req, res) => {
 // API to get all files for logged-in user
 router.get("/get-all-files", authenticateToken, async (req, res) => {
   try {
-    const user_id = req.user.user_id; // Extracted from token
-    
-    // Fetch all files for the user across all folders
-    const files = await File.find({ user_id: user_id });
-
-    if (!files || files.length === 0) {
-      return res.status(404).json({ message: "No files found for this user." });
-    }
-
-    // Decrypt file details before sending the response
-    const decryptedFiles = files.map(file => {
-      const fileName = decryptField(file.file_name, file.iv_file_name);
-      const fileLink = decryptField(file.aws_file_link, file.iv_file_link);
-      // const folderName = decryptField(folder.folder_name, folder.iv_folder_name);
-      return {
-        ...file.toObject(),
-        // folder_name: folderName,
-        file_name: fileName,
-        aws_file_link: fileLink,
-      };
+    const user_id = req.user.user_id;
+    const files = await File.find({ user_id: user_id }).populate({
+      path: "folder_id",
+      select: "folder_name iv_folder_name", 
     });
-
-    // Respond with the decrypted files
+    if (!files || files.length === 0) {
+      return res.status(404).json({ message: "No files or voice recordings found for this user." });
+    }
+ 
+    const decryptedFiles = files.map((file) => {
+      try {
+        const fileName = file.file_name ? decryptField(file.file_name, file.iv_file_name) : null;
+        const fileLink = file.aws_file_link ? decryptField(file.aws_file_link, file.iv_file_link) : null;
+        const folderName = file.folder_id
+          ? decryptField(file.folder_id.folder_name, file.folder_id.iv_folder_name)
+          : "Unknown Folder";
+        return {
+          ...file.toObject(),
+          folder_name: folderName,
+          file_name: fileName,
+          aws_file_link: fileLink,
+        };
+      } catch (err) {
+        console.error("Error decrypting file:", err.message);
+        return {
+          ...file.toObject(),
+          folder_name: "Decryption failed",
+          file_name: "Decryption failed",
+          aws_file_link: "Decryption failed",
+        };
+      }
+    });
     res.status(200).json(decryptedFiles);
   } catch (error) {
-    console.error("Error retrieving files:", error);
-    res.status(500).json({ message: "Error retrieving files.", error: error.message });
+    console.error("Error retrieving files and voice recordings:", error);
+    res.status(500).json({ message: "Error retrieving files and voice recordings.", error: error.message });
   }
 });
 
-router.post("/view-file-content", authenticateToken, async (req, res) => {
+router.post("/view-file-content", async (req, res) => {
   try {
-    const { fileId } = req.body; // Retrieve fileId from the request body
-    const user_id = req.user.user_id; // Extracted from token
-
+    const { fileId } = req.body;
     if (!fileId) {
       return res.status(400).json({ message: "File ID is required." });
     }
-
     // Find the file by ID
     const file = await File.findById(fileId);
-
-    if (!file || file.user_id.toString() !== user_id) {
-      return res.status(403).json({ message: "Access denied or file not found." });
+    if (!file) {
+      return res.status(404).json({ message: "File not found." });
     }
-
     // Decrypt file details
     const fileName = decryptField(file.file_name, file.iv_file_name);
     const fileLink = decryptField(file.aws_file_link, file.iv_file_link);
-
     // Extract the object key from the file link
     const bucketName = process.env.AWS_BUCKET_NAME;
     const region = process.env.AWS_REGION;
     const urlPrefix = `https://${bucketName}.s3.${region}.amazonaws.com/`;
     const fileKey = fileLink.replace(urlPrefix, ""); // Extract S3 object key
-
     // Generate a signed URL for the file
-    const signedUrl = await getSignedUrl(s3, new GetObjectCommand({
-      Bucket: bucketName,
-      Key: fileKey, // Use extracted file key
-    }), { expiresIn: 300 }); // URL expires in 5 minutes
-
+    const signedUrl = await getSignedUrl(
+      s3,
+      new GetObjectCommand({
+        Bucket: bucketName,
+        Key: fileKey, // Use extracted file key
+      }),
+      { expiresIn: 300 } // URL expires in 5 minutes
+    );
     // Respond with file details and the signed URL
     res.status(200).json({
       file_name: fileName,
@@ -357,6 +455,39 @@ router.post("/download-file", authenticateToken, async (req, res) => {
   }
 });
 
+router.post("/edit-file-name", async (req, res) => {
+  try {
+    const { file_id, new_file_name } = req.body;
+
+    // Validate inputs
+    if (!file_id || !new_file_name) {
+      return res.status(400).json({ error: "File ID and new file name are required." });
+    }
+
+    // Find the file in MongoDB
+    const file = await File.findById(file_id);
+    if (!file) {
+      return res.status(404).json({ error: "File not found." });
+    }
+
+    // Encrypt the new file name
+    const { encryptedData, iv } = encryptField(new_file_name);
+
+    // Update the file name and IV in MongoDB
+    file.file_name = encryptedData;
+    file.iv_file_name = iv;
+    await file.save();
+
+    res.status(200).json({
+      message: "File name updated successfully.",
+      newFileName: new_file_name,
+    });
+  } catch (error) {
+    console.error("Error in edit-file-name route:", error);
+    res.status(500).json({ error: "An unexpected error occurred." });
+  }
+});
+
 router.post("/edit-folder-name", authenticateToken, async (req, res) => {
   try {
     const { folder_id, new_folder_name } = req.body;
@@ -384,5 +515,45 @@ router.post("/edit-folder-name", authenticateToken, async (req, res) => {
     res.status(500).json({ error: "An unexpected error occurred." });
   }
 });
+
+
+
+
+// API to get the total size of a user's folder in S3
+router.get('/get-folder-size', authenticateToken, async (req, res) => {
+  const userId = req.user.user_id;
+  const folderName = `${userId}/`; 
+  let totalSize = 0;
+  let isTruncated = true;
+  let continuationToken = null;
+
+  try {
+
+    while (isTruncated) {
+      const params = {
+        Bucket: process.env.AWS_BUCKET_NAME,
+        Prefix: folderName, 
+        ContinuationToken: continuationToken, 
+      };
+
+      const command = new ListObjectsV2Command(params);
+      const data = await s3.send(command);
+      data.Contents.forEach((object) => {
+        totalSize += object.Size;
+      });
+
+
+      isTruncated = data.IsTruncated;
+      continuationToken = data.NextContinuationToken;
+      
+    }
+    const totalSizeKB = totalSize / 1024;
+    res.json({ totalSizeKB });
+  } catch (error) {
+    console.error('Error fetching folder size:', error);
+    res.status(500).json({ error: 'Failed to retrieve folder size' });
+  }
+});
+
 
 module.exports = router;

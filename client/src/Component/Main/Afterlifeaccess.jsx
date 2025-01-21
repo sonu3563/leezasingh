@@ -304,7 +304,7 @@ const Afterlifeaccess = () => {
             <div>
               <div
                 className="bg-[#0067FF] w-60 rounded-2xl my-2 px-2 py-4 cursor-pointer space-y-0 sm:space-y-1 flex flex-col gap-3"
-                onClick={togglePopupD}
+                // onClick={togglePopupD}
               >
                 <button className="flex items-center  text-white px-2">
                   {/* <img src={VoiceLogo} alt="" className="h-12 w-12" /> */}

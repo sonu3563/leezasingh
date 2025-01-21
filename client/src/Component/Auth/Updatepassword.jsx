@@ -274,7 +274,7 @@ const Updatepassword = () => {
                          {/* <a href="#" className="text-blue-500">
                              Register Now
                          </a> */}
-                         <Link to="/" className="text-blue-500">
+                         <Link to="/Signup" className="text-blue-500">
                              Register Now
                          </Link>
                     </p>

@@ -237,10 +237,8 @@ router.post('/nc-designee-login', async (req, res) => {
 });
 
 
-
-
 router.post("/share-files", authenticateToken, async (req, res) => {
-  const { to_email_id, file_id, access, notify } = req.body; 
+  const { to_email_id, file_id, access, notify, message  } = req.body; 
   const from_user_id = req.user.user_id; 
   if (!to_email_id || !Array.isArray(to_email_id) || !file_id) {
     return res.status(400).json({ message: "Designee emails (array) and file ID are required." });
@@ -290,6 +288,7 @@ router.post("/share-files", authenticateToken, async (req, res) => {
         const otp = designee.password;
         const body = `
           Hello ${designee.name},<br/><br/>
+          ${message ? `Message from the sender: <b>${message}</b><br/><br/>` : ''}
           Please click on the link below to access shared files on Cumulus.<br/><br/>
           <a href='http://localhost:3000/SharedFiles?email=${email}&created_by=${from_user_id}'>
             http://localhost:3000/SharedFiles?email=${email}&created_by=${from_user_id}
@@ -316,73 +315,52 @@ router.post("/share-files", authenticateToken, async (req, res) => {
   res.status(200).json({ message: "File sharing process completed.", results });
 });
 
-
-router.post("/share-files", authenticateToken, async (req, res) => {
-  const { to_email_id, file_id, access, notify } = req.body; // file_id is now an array
-  const from_user_id = req.user.user_id;
-
-  if (!to_email_id || !Array.isArray(to_email_id) || !Array.isArray(file_id) || file_id.length === 0) {
-    return res.status(400).json({ message: "Designee emails (array) and file IDs (array) are required." });
+router.post("/share-voices", authenticateToken, async (req, res) => {
+  const { to_email_id, voice_id, access, notify, message  } = req.body; 
+  const from_user_id = req.user.user_id; 
+  if (!to_email_id || !Array.isArray(to_email_id) || !voice_id) {
+    return res.status(400).json({ message: "Designee emails (array) and voice ID are required." });
   }
-
   const results = [];
-
   for (const email of to_email_id) {
     try {
-      // Check if the designee exists
       const designee = await Designee.findOne({ email });
       if (!designee) {
         results.push({ email, status: "failed", message: "Designee not found." });
         continue;
       }
-
-      // Check if the user is authorized to share files with the designee
       if (!designee.from_user_id.includes(from_user_id)) {
-        results.push({ email, status: "failed", message: "Not authorized to share files with this designee." });
+        results.push({ email, status: "failed", message: "Not authorized to share voices with this designee." });
         continue;
       }
-
-      // Find or create a UserSharedFile entry
+      const voiceExists = await Voice.findById(voice_id);
+      if (!voiceExists) {
+        results.push({ email, status: "failed", message: "Invalid voice ID." });
+        continue;
+      }
       let userSharedFile = await UserSharedFile.findOne({ from_user_id, to_email_id: email });
       if (!userSharedFile) {
         userSharedFile = new UserSharedFile({
           from_user_id,
           to_email_id: email,
-          files: [],
+          voices: [],
         });
       }
-
-      // Process each file_id in the array
-      for (const fileId of file_id) {
-        // Check if the file exists
-        const fileExists = await File.findById(fileId);
-        if (!fileExists) {
-          results.push({ email, file_id: fileId, status: "failed", message: "Invalid file ID." });
-          continue;
-        }
-
-        // Check if the file already exists in the files array
-        const existingFile = userSharedFile.files.find(f => f.file_id.toString() === fileId);
-        if (existingFile) {
-          // Update access if the file already exists
-          existingFile.access = access || existingFile.access;
-        } else {
-          // Add the new file to the files array
-          userSharedFile.files.push({ file_id: fileId, access });
-        }
+      const existingVoice = userSharedFile.voices.find(v => v.voice_id.toString() === voice_id);
+      if (existingVoice) {
+        existingVoice.access = access || existingVoice.access;
+      } else {
+        userSharedFile.voices.push({ voice_id, access });
       }
-
-      // Save the updated or new UserSharedFile
       await userSharedFile.save();
-
-      // Send notification email if requested
       if (notify) {
         const otp = designee.password;
         const body = `
           Hello ${designee.name},<br/><br/>
-          Please click on the link below to access shared files on Cumulus.<br/><br/>
-          <a href='http://localhost:3000/SharedFiles?email=${email}&created_by=${from_user_id}'>
-            http://localhost:3000/SharedFiles?email=${email}&created_by=${from_user_id}
+          ${message ? `Message from the sender: <b>${message}</b><br/><br/>` : ''}
+          Please click on the link below to access shared voice memos on Cumulus.<br/><br/>
+          <a href='http://localhost:3000/SharedVoices?email=${email}&created_by=${from_user_id}'>
+            http://localhost:3000/SharedVoices?email=${email}&created_by=${from_user_id}
           </a>
           <br/><br/>
           Your OTP is: ${otp}<br/><br/>
@@ -391,20 +369,19 @@ router.post("/share-files", authenticateToken, async (req, res) => {
         `;
         await sendEmail({
           to: email,
-          subject: "File Sharing Invitation",
+          subject: "Voice Sharing Invitation",
           body,
         });
-        results.push({ email, status: "success", message: "Files shared and email sent with OTP." });
+        results.push({ email, status: "success", message: "Voice memo shared and email sent with OTP." });
       } else {
-        results.push({ email, status: "success", message: "Files shared successfully. No email sent." });
+        results.push({ email, status: "success", message: "Voice memo shared successfully. No email sent." });
       }
     } catch (error) {
-      console.error(`Error sharing files with ${email}:`, error);
-      results.push({ email, status: "failed", message: "Error sharing files or sending email.", error: error.message });
+      console.error(`Error sharing voice memo with ${email}:`, error);
+      results.push({ email, status: "failed", message: "Error sharing voice memo or sending email.", error: error.message });
     }
   }
-
-  res.status(200).json({ message: "File sharing process completed.", results });
+  res.status(200).json({ message: "Voice sharing process completed.", results });
 });
 
 
@@ -453,7 +430,7 @@ router.post("/get-shared-files-nc", async (req, res) => {
   }
 });
 // API to get shared files for Cumulus user (logged-in user)
-router.post("/get-shared-files-cumulus", authenticateToken, async (req, res) => {
+router.post("/get-shared-cumulus", authenticateToken, async (req, res) => {
   try {
     const from_user_id = req.user.user_id;
     const user = await Userlogin.findById(from_user_id);
@@ -461,15 +438,14 @@ router.post("/get-shared-files-cumulus", authenticateToken, async (req, res) => 
       return res.status(404).json({ message: "User not found." });
     }
     const to_email_id = user.email;
+    // Fetch shared files
     const sharedFiles = await UserSharedFile.find({ to_email_id })
       .populate("from_user_id", "username email")
       .populate({
         path: "files.file_id",
         select: "file_name aws_file_link iv_file_name iv_file_link",
       });
-    if (!sharedFiles || sharedFiles.length === 0) {
-      return res.status(404).json({ message: "No shared files found for this email." });
-    }
+    // Decrypt shared files
     const decryptedSharedFiles = sharedFiles.map((sharedFile) => ({
       from_user: {
         username: sharedFile.from_user_id?.username || "Unknown User",
@@ -491,10 +467,59 @@ router.post("/get-shared-files-cumulus", authenticateToken, async (req, res) => 
           };
         }),
     }));
-    res.status(200).json({ decryptedSharedFiles });
+    // Fetch shared voices
+    const sharedVoices = await UserSharedFile.find({ to_email_id })
+      .populate("from_user_id", "username email")
+      .populate({
+        path: "voices.voice_id",
+        select: "voice_name aws_file_link iv_voice_name iv_file_link duration file_size",
+      });
+    // Decrypt shared voices
+    const decryptedSharedVoices = sharedVoices.map((sharedVoice) => ({
+      from_user: {
+        username: sharedVoice.from_user_id?.username || "Unknown User",
+        email: sharedVoice.from_user_id?.email || "Unknown Email",
+        _id: sharedVoice.from_user_id?._id || null,
+      },
+      created_at: sharedVoice.created_at,
+      shared_voices: sharedVoice.voices
+        .filter((voice) => voice.voice_id) // Ensure voice_id is not null
+        .map((voice) => {
+          const {
+            voice_name,
+            aws_file_link,
+            iv_voice_name,
+            iv_file_link,
+            duration,
+            file_size,
+          } = voice.voice_id;
+          if (!voice_name || !iv_voice_name || !aws_file_link || !iv_file_link) {
+            console.warn("Missing voice details for voice_id:", voice.voice_id._id);
+            return null;
+          }
+          const decryptedVoiceName = decryptvoice(voice_name, iv_voice_name);
+          const decryptedVoiceLink = decryptvoice(aws_file_link, iv_file_link);
+          return {
+            voice_id: voice.voice_id._id,
+            voice_name: decryptedVoiceName,
+            aws_file_link: decryptedVoiceLink,
+            duration,
+            file_size,
+            access: voice.access,
+          };
+        })
+        .filter((voice) => voice !== null), // Remove null entries
+    }));
+    res.status(200).json({
+      files: decryptedSharedFiles,
+      voices: decryptedSharedVoices,
+    });
   } catch (error) {
-    console.error("Error retrieving shared files:", error);
-    res.status(500).json({ message: "Error retrieving shared files.", error: error.message });
+    console.error("Error retrieving shared data:", error);
+    res.status(500).json({
+      message: "Error retrieving shared data.",
+      error: error.message,
+    });
   }
 });
 router.post("/get", authenticateToken, async (req, res) => {
@@ -757,60 +782,53 @@ router.post("/get-shared-voices-cumulus", authenticateToken, async (req, res) =>
 
 
 
-
 router.post('/update-access', authenticateToken, async (req, res) => {
   const from_user_id = req.user.user_id;
   const { to_email_id, edit_access, file_id, voice_id } = req.body;
-
-
-  if (!to_email_id || !edit_access || (!file_id && !voice_id)) {
-    return res.status(400).json({ message: 'to_email_id, edit_access, and either file_id or voice_id are required.' });
+  if (!to_email_id || !edit_access) {
+    return res.status(400).json({ message: 'to_email_id and edit_access are required.' });
   }
-
   try {
- 
     const sharedRecord = await UserSharedFile.findOne({ from_user_id, to_email_id });
-
     if (!sharedRecord) {
       return res.status(404).json({ message: 'Shared record not found for the specified user and email.' });
     }
-
     let itemUpdated = false;
-
-
-    if (file_id) {
-      const file = sharedRecord.files.find(f => f.file_id.toString() === file_id);
-      if (file) {
+    if (!file_id && !voice_id) {
+      sharedRecord.files.forEach(file => {
         file.access = edit_access;
-        itemUpdated = true;
-      }
-    }
-
-  
-    if (voice_id) {
-      const voice = sharedRecord.voices.find(v => v.voice_id.toString() === voice_id);
-      if (voice) {
+      });
+      sharedRecord.voices.forEach(voice => {
         voice.access = edit_access;
-        itemUpdated = true;
+      });
+      itemUpdated = true;
+    } else {
+  
+      if (file_id) {
+        const file = sharedRecord.files.find(f => f.file_id.toString() === file_id);
+        if (file) {
+          file.access = edit_access;
+          itemUpdated = true;
+        }
+      }
+      if (voice_id) {
+        const voice = sharedRecord.voices.find(v => v.voice_id.toString() === voice_id);
+        if (voice) {
+          voice.access = edit_access;
+          itemUpdated = true;
+        }
       }
     }
-
     if (!itemUpdated) {
       return res.status(404).json({ message: 'Specified file_id or voice_id not found in the shared record.' });
     }
-
-
     await sharedRecord.save();
-
     res.status(200).json({ message: 'Access level updated successfully.' });
   } catch (error) {
     console.error('Error updating access level:', error);
     res.status(500).json({ message: 'An error occurred while updating access level.', error: error.message });
   }
 });
-
-
-
 
 router.get('/getting-all-shared-files', authenticateToken, async (req, res) => {
   try {
@@ -846,7 +864,6 @@ router.get('/getting-all-shared-files', authenticateToken, async (req, res) => {
       };
     }));
 
-    // Send the result with decrypted data
     res.json(result);
   } catch (err) {
     console.error('Error retrieving shared files:', err);
@@ -854,6 +871,109 @@ router.get('/getting-all-shared-files', authenticateToken, async (req, res) => {
   }
 });
 
+router.post('/assignments', authenticateToken, async (req, res) => {
+  const user_id = req.user.user_id; // Extract user_id from the decoded token
+  const { file_id, voice_id } = req.body;
+  // Initialize query object to always filter by user_id
+  let query = { from_user_id: user_id };
+  // If file_id is provided, add it to the query
+  if (file_id) {
+    query['files.file_id'] = file_id;
+  }
+  // If voice_id is provided, add it to the query
+  if (voice_id) {
+    query['voices.voice_id'] = voice_id;
+  }
+  // If neither file_id nor voice_id is provided, return a 400 Bad Request
+  if (!file_id && !voice_id) {
+    return res.status(400).json({ message: 'Either file_id or voice_id must be provided' });
+  }
+  try {
+    const userSharedFiles = await UserSharedFile.find(query)
+      .populate('files.file_id')
+      .populate('voices.voice_id');
+    if (userSharedFiles.length === 0) {
+      return res.status(404).json({ message: 'No assignments found for the provided file/voice' });
+    }
+    // Extract unique designee emails
+    const designeeEmails = userSharedFiles.map(sharedFile => sharedFile.to_email_id);
+    // Fetch designee details
+    const designees = await Designee.find({ email: { $in: designeeEmails } });
+    // Add access details to each designee for the specific file/voice
+    const responseData = designees.map(designee => {
+      const sharedFile = userSharedFiles.find(file => file.to_email_id === designee.email);
+      // Find access for the specific file_id or voice_id
+      const fileAccess = sharedFile.files
+        .filter(file => file.file_id && file.file_id._id.toString() === file_id)
+        .map(file => file.access);
+      const voiceAccess = sharedFile.voices
+        .filter(voice => voice.voice_id && voice.voice_id._id.toString() === voice_id)
+        .map(voice => voice.access);
+      return {
+        ...designee.toObject(), // Convert Mongoose document to plain object
+        access: fileAccess.length > 0 ? fileAccess[0] : voiceAccess[0], // Single access for the specific file or voice
+      };
+    });
+    res.status(200).json({
+      status: 'success',
+      data: responseData,
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Internal Server Error' });
+  }
+});
+
+
+
+
+router.post('/update-access', authenticateToken, async (req, res) => {
+  const from_user_id = req.user.user_id;
+  const { to_email_id, edit_access, file_id, voice_id } = req.body;
+  if (!to_email_id || !edit_access) {
+    return res.status(400).json({ message: 'to_email_id and edit_access are required.' });
+  }
+  try {
+    const sharedRecord = await UserSharedFile.findOne({ from_user_id, to_email_id });
+    if (!sharedRecord) {
+      return res.status(404).json({ message: 'Shared record not found for the specified user and email.' });
+    }
+    let itemUpdated = false;
+    if (!file_id && !voice_id) {
+      sharedRecord.files.forEach(file => {
+        file.access = edit_access;
+      });
+      sharedRecord.voices.forEach(voice => {
+        voice.access = edit_access;
+      });
+      itemUpdated = true;
+    } else {
+  
+      if (file_id) {
+        const file = sharedRecord.files.find(f => f.file_id.toString() === file_id);
+        if (file) {
+          file.access = edit_access;
+          itemUpdated = true;
+        }
+      }
+      if (voice_id) {
+        const voice = sharedRecord.voices.find(v => v.voice_id.toString() === voice_id);
+        if (voice) {
+          voice.access = edit_access;
+          itemUpdated = true;
+        }
+      }
+    }
+    if (!itemUpdated) {
+      return res.status(404).json({ message: 'Specified file_id or voice_id not found in the shared record.' });
+    }
+    await sharedRecord.save();
+    res.status(200).json({ message: 'Access level updated successfully.' });
+  } catch (error) {
+    console.error('Error updating access level:', error);
+    res.status(500).json({ message: 'An error occurred while updating access level.', error: error.message });
+  }
+});
 
 
 

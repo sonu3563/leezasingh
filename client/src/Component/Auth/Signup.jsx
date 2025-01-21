@@ -50,12 +50,15 @@ const Signup = () => {
     const [token, setToken] = useState("");
     const handleEmailChange = (e) => {
         setEmail(e.target.value);
-        setIsVerifyButtonVisible(true); // Show verify button when email is filled
+        setIsVerifyButtonVisible(true); 
     };
     const handleSendOTP = async () => {
+hideLoading();
         try {
+            showLoading();
             const response = await axios.post(`${API_URL}/api/auth/send-otp`, { email });
             if (response.data.success) {
+                
                 setMessage("OTP sent successfully! Please check your email.");
                 // handleVerifyOtp();
                 setIsVerifyButtonVisible(false);
@@ -65,9 +68,13 @@ const Signup = () => {
         } catch (error) {
             setMessage("An error occurred while sending OTP.");
         }
+        finally{
+            hideLoading();
+        }
     };
 
     const handleLogin = async (e) => {
+        
         e.preventDefault();
         console.log("Email:", email);
 
@@ -113,6 +120,9 @@ const Signup = () => {
         } catch (error) {
             console.error("Login error:", error);
             setError("There was an error. Please try again.");
+        }
+        finally{
+            hideLoading();
         }
 
     };
@@ -335,6 +345,7 @@ const Signup = () => {
             setError(false);
             // Handle response here (e.g., navigate to a different page or show success message)
             console.log('Success:', data);
+            setMessage("");
             setDialogOpen2(true);
             // navigate('/next-page');  // Navigate to next page on successful sign-up
         } catch (error) {
@@ -403,52 +414,63 @@ const Signup = () => {
         }
     };
 
-    const onCaptchVerify = (phoneNumber) => {
+
+    const onCaptchVerify = () => {
         if (!window.recaptchaVerifier) {
             window.recaptchaVerifier = new RecaptchaVerifier(
-                auth,
-                "recaptcha-container",  // The container ID for reCAPTCHA
+                'recaptcha-container',
                 {
-                    size: "invisible",
+                    size: 'invisible',
                     callback: (response) => {
-                        generateOTPWithVerification(phoneNumber);
+                        console.log("reCAPTCHA solved:", response);
                     },
-                    "expired-callback": () => {
-                        toast.error("ReCAPTCHA expired, please try again.");
-                    }
-                }
+                    'expired-callback': () => {
+                        console.log("reCAPTCHA expired.");
+                        resetRecaptchaVerifier();
+                    },
+                },
+                auth
             );
         }
     };
-
-
-    // Function to handle OTP generation after reCAPTCHA is verified
+    
+    const resetRecaptchaVerifier = () => {
+        if (window.recaptchaVerifier) {
+            window.recaptchaVerifier.clear();
+            console.log("ReCAPTCHA cleared.");
+        }
+        onCaptchVerify(); // Reinitialize
+    };
+    
     const generateOTPWithVerification = async (phoneNumber) => {
         if (!phoneNumber) {
-            toast.error("Please enter a valid phone number.");
+            toast.error('Please enter a valid phone number.');
             return;
         }
-
-        console.log("Phone number to verify:", phoneNumber);
-        console.log("Recaptcha appVerifier:", window.recaptchaVerifier);
-
-        onCaptchVerify(phoneNumber);
-
-        const formatPh = "+91" + phoneNumber;
-        console.log("Formatted phone number:", formatPh);
-
+    
+        resetRecaptchaVerifier(); // Ensure fresh RecaptchaVerifier
+    
+        const formatPh = '+91' + phoneNumber;
+        console.log('Formatted phone number:', formatPh);
+    
         try {
             const appVerifier = window.recaptchaVerifier;
             const confirmation = await signInWithPhoneNumber(auth, formatPh, appVerifier);
-
+    
             setConfirmationResult(confirmation);
             setMessage('OTP sent to your phone.');
             handleNextStep();
         } catch (error) {
-            console.log("Error message:", error.message);
+            console.error('Error during OTP generation:', error);
+            if (error.code === 'auth/internal-error') {
+                console.error('Internal error: Check Firebase project settings and network status.');
+            }
             setMessage(`Failed to send OTP: ${error.message}`);
         }
     };
+    
+    
+    
 
 
 
@@ -579,22 +601,6 @@ const Signup = () => {
                                     required
                                 />
                             </div>
-                            {/* <div>
-                            <label htmlFor="email" className="block text-sm font-medium">
-                                Email Address
-                            </label>
-                            <input
-                                type="email"
-                                id="email"
-                                className={`w-full mt-1 px-3 py-2 border rounded-md focus:outline-none focus:ring ${error ? "border-red-500 focus:ring-red-500" : "focus:ring-blue-500"
-                                }`}
-                                placeholder="Enter your email"
-                                required
-                                value={email}
-                                onChange={(e) => setEmail(e.target.value)}
-                            />
-                        </div> */}
-
                             <div>
                                 <label htmlFor="email" className="block text-sm font-medium">
                                     Email Address

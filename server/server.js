@@ -26,7 +26,7 @@ app.use(express.json());
 
 app.use(cookieParser());
 app.use(cors({
-  origin: 'http://localhost:3002', 
+  origin: 'http://localhost:3001', 
   credentials: true, 
 }));
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
@@ -54,7 +54,6 @@ app.use("/api/help-support", helpandsupport);
 app.use("/api/designee", designeeRoutes);
 app.use("/api/email", emailRoutes);
 app.use("/api/after-life", afterlifeRoutes);
-
 app.use("/api", assistanceRoutes);
 app.use("/api", faqRoutes);
 app.use("/api", emailRoutes);

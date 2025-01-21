@@ -63,8 +63,15 @@ router.post("/send-otp", async (req, res) => {
     otpStore.set(email, { otp, expiresAt });
     console.log("Stored OTP for email:", email, otpStore.get(email));
 
+    // Prepare email content
+    const emailContent = {
+      to: email, // recipient's email
+      subject: "Your OTP Code", // subject line
+      body: `<p>Your OTP code is: <strong>${otp}</strong></p><p>It will expire in 5 minutes.</p>`, // HTML body
+    };
+
     // Send OTP via email
-    const emailResponse = await sendEmail(email, otp);
+    const emailResponse = await sendEmail(emailContent);
 
     if (emailResponse.success) {
       res.status(200).json({
@@ -80,6 +87,7 @@ router.post("/send-otp", async (req, res) => {
     res.status(500).json({ message: "Error generating or sending OTP.", error: error.message });
   }
 });
+
 
 
 router.post("/confirm-otp", async (req, res) => {

@@ -17,6 +17,7 @@ import downloadicon from "../../assets/downloadicon.png";
 
 import { API_URL } from '../utils/Apiconfig';
 import axios from 'axios'; // For API integration
+import { faBedPulse } from '@fortawesome/free-solid-svg-icons';
 const Voicememo = ({ searchQuery }) => {
   const [viewMode, setViewMode] = useState('list'); // 'list' or 'grid'
   const [username, setUsername] = useState("");
@@ -67,8 +68,13 @@ const Voicememo = ({ searchQuery }) => {
   const [loading, setLoading] = useState(false);
   const [editsMode, setEditsMode] = useState(null);
   const [file, setFile] = useState([]);
+  const [fileId, setFileId] = useState([]);
+  const [access, setAccess] = useState(false);
   const [newVoicesName, setNewVoicesName] = useState("");
   const [shareFolderModal, setShareFolderModal] = useState(false);
+  const [showDropdown, setShowDropdown] = useState(null);
+  const [editFileId, setEditFileId] = useState(null);
+  
   const handleEdits = (id, currentName) => {
     setEditsMode(id);
     setNewVoicesName(currentName);
@@ -79,7 +85,7 @@ const Voicememo = ({ searchQuery }) => {
   }, []);
   const handleSaveEdits = async (id) => {
     try {
-      // const token = Cookies.get('token');
+      // const token = Cookies.get('token');  fileId
       const token = localStorage.getItem("token");
 
       if (!token) {
@@ -114,7 +120,14 @@ const Voicememo = ({ searchQuery }) => {
   };
 
 
+  const filteredDesignees = designees.filter((designee) =>
+    designee.name?.toLowerCase().includes(MobilesearchQuery.toLowerCase())
+  );
 
+  const handleClick = () => {
+    console.log("file hdbjcbhbckdnchbcb", file);
+    shareFile(file); // Calling the share function after setting the file ID
+  };
 
   const handleEllipsisClick = (index) => {
     setPopupIndex(index);
@@ -516,6 +529,8 @@ const Voicememo = ({ searchQuery }) => {
   console.log("token",token);
   console.log("to_email_id",selectedEmails);
   console.log("voice_id",voice_id);
+  console.log("notify",notify);
+  console.log("message",message);
     if (!selectedEmails || !token) {
       console.error("Missing required fields: to_email_id or token.");
       return;
@@ -524,8 +539,10 @@ const Voicememo = ({ searchQuery }) => {
   
     const data = {
       voice_id,
-      to_email_id: selectedEmails, // Pass the array of selected emails
-      access: "view", // Adjust as per your API's requirements
+      to_email_id: selectedEmails, // Pass the array of selected emails  message
+      access: "view", 
+      notify: notify,
+      message: message, // Adjust as per your API's requirements
     };
   
     try {
@@ -562,9 +579,7 @@ const Voicememo = ({ searchQuery }) => {
       });
     }
   }, [frequencyData]);
-  useEffect(() => {
-    // fetchAudioFiles(); // Fetch audio files on component mount
-  }, []);
+
 
   // const getAudioDuration = (url) => {
   //   return new Promise((resolve) => {
@@ -646,7 +661,126 @@ const Voicememo = ({ searchQuery }) => {
     };
   }, []);
 
+
+
+
+  const fetchUsersWithFileAccess = async (fileId) => {
+    try {
+      setLoading(true);
+      setError(null); // Reset error before making request
+
+      const token = localStorage.getItem("token");
+      if (!token) throw new Error("Authentication token is missing");
+
+      const response = await axios.post(
+        `${API_URL}/api/designee/assignments`,
+        { voice_id: fileId },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+
+      const designees = response.data.data;
+      const filteredUsers = designees.map((user) => ({
+        name: user.name,
+        email: user.email,
+        phone_number: user.phone_number,
+        permission: user.access,
+        role: user.role || "Viewer", // Assuming you might get role from the API
+        avatar: user.avatar || "https://placehold.co/40", // Use real avatar if available
+      }));
+
+      setAccess(true);
+      setUsers(filteredUsers);
+      console.log("userrr",filteredUsers);
+    } catch (error) {
+      setError("Failed to fetch data. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const updatePermission = async (voiceId,email, permission, index) => {
+    try {
+      console.log("Updating access for:", voiceId);
+      console.log("New permission:", permission);
+      console.log("New voice_id:", email);
+      const token = localStorage.getItem("token");
+      
+      // Ensure you have the correct voice_id available in your component or state
+
   
+      // Ensure `voice_id` is included in the request payload
+      const response = await axios.post(
+        `${API_URL}/api/designee/update-access`,
+        {
+          to_email_id: email,  // Pass email instead of index
+          edit_access: permission,
+          voice_id: voiceId,   // Include voice_id in the request
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,  // Add token to Authorization header
+          },
+        }
+      );
+  
+      if (response.status === 200) {
+        // Update the permission locally after a successful API response
+        const updatedUsers = [...users];
+        updatedUsers[index].permission = permission;
+        setUsers(updatedUsers);
+        setShowDropdown(false);
+        alert("Access level updated successfully");
+      }
+    } catch (error) {
+      console.error("Error updating permission:", error);
+      alert("Failed to update permission. Please try again.");
+      setShowDropdown(false);
+    }
+  };
+  
+  const removeUser = async (index) => {
+    const user = users[index];
+    // const file_id = user.file_id;  // Assuming the file_id is stored in the user object
+    const voice_id = user.voice_id; // Assuming the voice_id is stored in the user object
+  
+    try {
+      const token = localStorage.getItem("token");
+      // Make the API call to remove access
+      console.log("file_id".voice_id);
+      const response = await axios.post(`${API_URL}/api/designee/update-access`, {
+        to_email_id: user.email,
+        edit_access: permission,
+        voice_id: voice_id || null, // Only pass voice_id if it exists
+      }, {
+        headers: {
+          Authorization: `Bearer ${token}`,  // Add token to Authorization header
+        },
+      });
+  
+      if (response.status === 200) {
+        // Remove the user from the list
+        const updatedUsers = users.filter((_, i) => i !== index);
+        setUsers(updatedUsers);
+        alert('Access removed successfully');
+      }
+    } catch (error) {
+      console.error('Error removing user access:', error);
+      alert('Failed to remove access. Please try again.');
+    }
+  };
+
+  
+
+  // const updatePermission = (index, permission) => {
+  //   const updatedUsers = [...users];
+  //   updatedUsers[index].permission = permission;
+  //   setUsers(updatedUsers);
+  // };
+
+  // const removeUser = (index) => {
+  //   const updatedUsers = users.filter((_, i) => i !== index);
+  //   setUsers(updatedUsers);
+  // };
 
   return (
     <div className="mt-1 p-2 sm:p-4 max-h-screen bg-white overflow-hidden">
@@ -935,10 +1069,27 @@ const Voicememo = ({ searchQuery }) => {
                           >
                             <img src={shareicondesignee} alt="" className="h-4 " />
                             
-                            <span className="absolute bottom-[-40px] z-40 left-2/3 transform -translate-x-1/2 hidden group-hover:block bg-white w-24 text-black text-xs py-1 px-2 rounded shadow">
+                            <span className="absolute bottom-[-40px]  left-2/3 transform -translate-x-1/2 hidden group-hover:block bg-white w-24 text-black text-xs py-1 px-2 rounded shadow">
                               Share with Designee
                             </span>
                           </button>
+                          <button
+                                    className="relative group flex items-center gap-2 text-gray-600 hover:text-blue-500"
+                                    onClick={() => {
+                                      setEditFileId(file._id);
+                                      fetchUsersWithFileAccess(file._id);
+                                      console.log("Editing File ID:", file._id);
+                                    }}
+                                  >
+                                    <img
+                                      src={foldericon}
+                                      alt=""
+                                      className="h-4"
+                                    />
+                                    <span className="absolute bottom-[-30px] left-1/2 transform -translate-x-1/2 hidden group-hover:block min-w-[80px] bg-white text-black text-xs py-1 px-2 rounded shadow z-20">
+                                      Full Access
+                                    </span>
+                                  </button>
                           <button
                             className="relative group flex items-center gap-2 text-gray-600 hover:text-blue-500"
                             onClick={() => handleEdits(file._id, file.voice_name)}
@@ -1045,36 +1196,73 @@ const Voicememo = ({ searchQuery }) => {
                     exit={{ opacity: 0, scale: 0.9, y: -10 }}
                     className="absolute top-8 right-0 z-10 bg-white shadow-md rounded-md p-2 w-40 flex flex-col gap-2"
                   >
-                    <button
-                      className="relative group flex items-center gap-2 text-gray-600 hover:text-blue-500"
-                      onClick={() => alert("Share")}
-                    >
-                      <img src={shareicondesignee} alt="" className="h-4" />
-                      Share
-                    </button>
-                    {/* <button className="relative group flex items-center gap-2 text-gray-600 hover:text-blue-500">
-                <img src={editicon} alt="" className="h-4" />
-                Edit
-              </button> */}
-                    <button
-                      className="relative group flex items-center gap-2 text-gray-600 hover:text-blue-500"
-                      onClick={() => handleEdits(file._id, file.voice_name)}
-                    >
-                      <img src={editicon} alt="" className="h-4 " />
-                      {/* <Edit className="h-4" /> */}
-                      Edit
-                    </button>
+            <div className="flex gap-4 items-center">
+                          <button
+                            className="relative group flex items-center gap-2 text-gray-600 hover:text-blue-500"
+                            onClick={() => {
+                              setShareFolderModal(true);
+                              setFile(file._id);
+                            }}
+                          >
+                            <img src={shareicondesignee} alt="" className="h-4 " />
+                            
+                            <span className="absolute bottom-[-40px]  left-2/3 transform -translate-x-1/2 hidden group-hover:block bg-white w-24 text-black text-xs py-1 px-2 rounded shadow">
+                              Share with Designee
+                            </span>
+                          </button>
+                          <button
+                                    className="relative group flex items-center gap-2 text-gray-600 hover:text-blue-500"
+                                    onClick={() => {
+                                      setEditFileId(file._id);
+                                      fetchUsersWithFileAccess(file._id);
+                                      console.log("Editing File ID:", file._id);
+                                    }}
+                                  >
+                                    <img
+                                      src={foldericon}
+                                      alt=""
+                                      className="h-4"
+                                    />
+                                    <span className="absolute bottom-[-30px] left-1/2 transform -translate-x-1/2 hidden group-hover:block min-w-[80px] bg-white text-black text-xs py-1 px-2 rounded shadow z-20">
+                                      Full Access
+                                    </span>
+                                  </button>
+                          <button
+                            className="relative group flex items-center gap-2 text-gray-600 hover:text-blue-500"
+                            onClick={() => handleEdits(file._id, file.voice_name)}
 
-                    <button
-                      className="relative group flex items-center gap-2 text-gray-600 hover:text-red-500"
-                      onClick={() => {
-                        setSelectedFileId(file._id);
-                        setDeletebutton(true);
-                      }}
-                    >
-                      <img src={trashicon} alt="" className="h-4" />
-                      Delete
-                    </button>
+                          >
+                            <img src={editicon} alt="" className="h-4 " />
+                            {/* <Edit className="h-4" /> */}
+                            <span className="absolute bottom-[-30px] left-1/2 transform -translate-x-1/2 hidden group-hover:block bg-white w-24 text-black text-xs py-1 px-2 rounded shadow">
+                              Edit Document
+                            </span>
+                          </button>
+                          <button
+                            className="relative group flex items-center gap-2 text-gray-600 hover:text-red-500"
+                            onClick={() => {
+                              setSelectedFileId(file._id);
+                              setDeletebutton(true);
+                            }}
+                          >
+                            <img src={trashicon} alt="" className="h-4 " />
+                            {/* <Trash2 className="h-4 text-red-700" /> */}
+                            <span className="absolute bottom-[-30px] left-1/2 transform -translate-x-1/2 hidden group-hover:block bg-white text-black text-xs py-1 px-2 rounded shadow">
+                              Delete
+                            </span>
+                          </button>
+
+                          <button
+                            className="relative group flex items-center gap-2 text-gray-600 hover:text-blue-500"
+                            onClick={() => handleDownloadFile(file._id)}
+                          >
+                            <img src={downloadicon} alt="" className="h-4 " />
+                            {/* <Download className="h-4" /> */}
+                            <span className="absolute bottom-[-30px] left-1/2 transform -translate-x-1/2 hidden group-hover:block bg-white text-black text-xs py-1 px-2 rounded shadow">
+                              Download
+                            </span>
+                          </button>
+                        </div>
                   </motion.div>
                 )}
               </div>
@@ -1179,73 +1367,113 @@ const Voicememo = ({ searchQuery }) => {
         </div>
       )}
    {shareFolderModal && (
-  <div className="fixed inset-0 bg-gray-800 bg-opacity-50 flex items-center justify-center z-50">
-    <div className="mt-4 bg-white p-6 rounded-lg shadow-lg w-full max-w-md border border-gray-300">
-      <div className="flex justify-between items-center mb-4">
-        <h2 className="text-2xl font-semibold">
-          Share <span className="text-blue-600">Folder</span>
-        </h2>
-        <button onClick={() => setShareFolderModal(false)}>
-          <X className="w-5 h-5 text-gray-700 hover:text-red-500" />
-        </button>
-      </div>
+        <div className="fixed inset-0 bg-gray-800 bg-opacity-50 flex items-center justify-center z-50">
+          <div className="mt-4 bg-white p-6 rounded-lg shadow-lg w-full max-w-md border border-gray-300">
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-2xl font-semibold">
+                Share <span className="text-blue-600">Folder</span>
+              </h2>
+              <button onClick={() => {
+                setFile("");
+                setShareFolderModal(false);
 
-      {/* Designees dropdown */}
-      <div className="mb-4">
-        <h3 className="text-lg font-semibold">Select Designees</h3>
-        {loading ? (
-          <p>Loading designees...</p>
-        ) : (
-          <div className="space-y-2">
-            {designees.map((designee) => (
-              <div className="flex items-center" key={designee.email}>
-                <input
-                  type="checkbox"
-                  id={designee.email}
-                  checked={selectedEmails.includes(designee.email)}
-                  onChange={() => handleCheckboxChange(designee.email)}
-                  className="mr-2"
-                />
-                <label htmlFor={designee.email} className="text-sm">
-                  {designee.name} ({designee.email})
-                </label>
-              </div>
-            ))}
+              }}>
+                <X className="w-5 h-5 text-gray-700 hover:text-red-500" />
+              </button>
+            </div>
+
+            {/* Designees dropdown */}
+            <div className="mb-4">
+              <h3 className="text-lg font-semibold">Select Designees</h3>
+
+              {loading ? (
+                <p>Loading designees...</p>
+              ) : (
+                <div>
+                  {/* Search input */}
+                  <input
+                    // type="text"
+                    // placeholder="Search designees..."
+                    // value={searchQuery}
+
+                    // onChange={(e) => MobilesetsearchQuery(e.target.value)}
+                    // className="mb-2 p-2 border text border-gray-300 rounded w-full"
+                    // onFocus={() => setIsDropdownOpen(true)}
+                    type="text"
+                    placeholder="Search"
+                    className="w-full mb-2 p-2 border  bg-transparent outline-none text-black"
+                    onChange={(e) => MobilesetsearchQuery(e.target.value)}
+                  />
+
+                  {/* Dropdown */}
+
+                  <div className="relative">
+                    <div className="absolute w-full bg-white border border-gray-300 mt-2 rounded max-h-16 overflow-y-auto">
+                      {designees.length > 0 ? (
+                        filteredDesignees.map((designee) => (
+                          <div
+                            key={designee.email}
+                            className={`p-1 cursor-pointer ${selectedEmails.includes(designee.email) ? "text-blue-500" : ""}`}
+                            onClick={() => handleCheckboxChange(designee.email)}
+                          >
+                            {designee.name} ({designee.email})
+                          </div>
+                        ))
+                      ) : (
+                        <p className="p-2">No designees found.</p>
+                      )}
+                    </div>
+                  </div>
+
+
+                  {/* Display selected emails */}
+                  {selectedEmails.length >= 0 && (
+                    <div className="mt-20">
+                      <h4 className="text-lg font-semibold">Selected Designees</h4>
+                      <ul className="border px-2">
+                        {selectedEmails.map((email, index) => (
+                          <li key={index} className="text-sm">
+                            {email}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+
+            <div className="mb-4">
+              <textarea
+                placeholder="Message"
+                className="w-full border border-blue-500 rounded-lg p-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                value={message}
+                onChange={handleMessageChange}
+              ></textarea>
+            </div>
+
+            <div className="flex items-center mb-4">
+              <input
+                type="checkbox"
+                id="notify"
+                checked={notify}
+                onChange={handleNotifyChange}
+                className="mr-2"
+              />
+              <label htmlFor="notify" className="text-sm">Notify people</label>
+            </div>
+
+            <div className="flex justify-end">
+              <button
+                onClick={handleClick} // Pass the file_id when clicking the 'Send' button
+                className="bg-blue-500 text-white py-2 px-4 rounded-lg hover:bg-blue-600"
+              >
+                Send
+              </button>
+            </div>
           </div>
-        )}
-      </div>
-
-      <div className="mb-4">
-        <textarea
-          placeholder="Message"
-          className="w-full border border-blue-500 rounded-lg p-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-          value={message}
-          onChange={handleMessageChange}
-        ></textarea>
-      </div>
-
-      <div className="flex items-center mb-4">
-        <input
-          type="checkbox"
-          id="notify"
-          checked={notify}
-          onChange={handleNotifyChange}
-          className="mr-2"
-        />
-        <label htmlFor="notify" className="text-sm">Notify people</label>
-      </div>
-
-      <div className="flex justify-end">
-        <button
-          onClick={() => shareFile(file)} // Pass the file_id when clicking the 'Send' button
-          className="bg-blue-500 text-white py-2 px-4 rounded-lg hover:bg-blue-600"
-        >
-          Send
-        </button>
-      </div>
-    </div>
-  </div>
-)}
+        </div>
+      )}
       {deletebutton1 && (
         <div
           className="fixed inset-0 w-full h-full bg-gray-800 bg-opacity-50 flex items-center justify-center z-50"
@@ -1286,6 +1514,96 @@ const Voicememo = ({ searchQuery }) => {
           </div>
         </div>
       )}
+{access && (
+  <div className="fixed inset-0 bg-gray-800 bg-opacity-50 flex items-center justify-center z-50 ">
+    <div className="mt-4 bg-white p-6 rounded-lg shadow-lg w-full max-w-md border border-gray-300">
+      <div className="flex justify-between items-center mb-6">
+        <h2 className="text-3xl font-bold">
+          Share <span className="text-blue-500">File</span>
+        </h2>
+
+        <button
+          onClick={() => setAccess(false)}
+          className="p-2 rounded-full "
+        >
+          <X className="w-6 h-4 text-gray-700 hover:text-red-500" />
+        </button>
+      </div>
+
+      {loading && <p>Loading...</p>}
+      {error && <p className="text-red-500">{error}</p>}
+
+      <div>
+        <h3 className="text-xl font-semibold mb-4">People with access</h3>
+
+        {users.length > 0 ? (
+          users.map((user, index) => (
+            <div key={index} className="flex items-center justify-between mb-4">
+              <div className="flex items-center">
+                <img
+                  src={user.avatar}
+                  alt="User avatar"
+                  className="w-12 h-12 rounded-full mr-4"
+                />
+
+                <div>
+                  <p className="font-semibold text-lg">{user.name}</p>
+                  <p className="text-gray-600 text-sm">{user.email}</p>
+                </div>
+              </div>
+
+              {user.role === "Owner" ? (
+                <p className="text-gray-500 text-sm">{user.permission}</p>
+              ) : (
+                <div className="relative">
+                  <button
+                    onClick={() =>
+                      setShowDropdown(showDropdown === index ? null : index)
+                    }
+                    className="text-blue-500 border border-gray-300 rounded-lg px-3 py-2 text-sm"
+                  >
+                    {user.permission}
+                  </button>
+
+                  {showDropdown === index && (
+                    <div className="absolute right-0 mt-2 w-48 bg-white border border-gray-300 rounded-lg shadow-lg">
+                      <p
+                        className="px-4 py-2 cursor-pointer hover:bg-gray-100"
+                        onClick={() => updatePermission(editFileId,user.email, "View", index)}
+                      >
+                        Only View
+                      </p>
+
+                      <p
+                        className="px-4 py-2 cursor-pointer hover:bg-gray-100"
+                        onClick={() => {
+                          // Check the file._id in the console
+                          console.log("File editFileId: ", editFileId);  // Log file._id to the console
+                          updatePermission(editFileId , user.email, "Edit", index);
+                        }}
+                      >
+                        Edit Access
+                      </p>
+
+                      <p
+                        className="px-4 py-2 cursor-pointer hover:bg-gray-100"
+                        onClick={() => removeUser(index)}
+                      >
+                        Remove Access
+                      </p>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          ))
+        ) : (
+          <p>No users with access found.</p>
+        )}
+      </div>
+    </div>
+  </div>
+)}
     </div>
   );
 

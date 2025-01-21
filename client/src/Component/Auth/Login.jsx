@@ -428,11 +428,10 @@ console.log(username);
     };
 
     const handleFinalSubmit = () => {
-        // Optionally, show a success message or perform some action
+     
         setDialogOpen2(false);
         
-        // Navigate to the desired page
-        // navigate('/Enterdashboard');  // Replace '/your-new-page' with the path to your new page
+   
         handleVerifyOtp();
     };
     const handlePhoneNumberChange = (e) => {
@@ -553,7 +552,7 @@ console.log(username);
 
                     <p className="text-center text-gray-500 mt-4">
                         Don&apos;t have an account?{" "}
-                        <Link to="/" className="text-blue-500">
+                        <Link to="/Signup" className="text-blue-500">
                         Register Now
 </Link>
                     </p>

@@ -48,6 +48,7 @@ import { useParams, NavLink } from "react-router-dom";
 import useLoadingStore from "../../store/UseLoadingStore";
 
 const Dashboard = ({ folderId = 1, onFolderSelect, searchQuery }) => {
+
   const [collabs, setCollabs] = useState("");
   const [fileId, setFileId] = useState([]);
   const [permission, setPermission] = useState(false);
@@ -110,15 +111,15 @@ const Dashboard = ({ folderId = 1, onFolderSelect, searchQuery }) => {
   const [designers, setDesigners] = useState([]);
   const [selectedFolderId, setSelectedFolderId] = useState("");
 
-  const [customFileName, setCustomFileName] = useState(""); 
+  const [customFileName, setCustomFileName] = useState("");
 
-  const [inputFileName, setInputFileName] = useState(""); 
+  const [inputFileName, setInputFileName] = useState("");
 
   const [uploadStatus, setUploadStatus] = useState("");
 
   const [tags, setTags] = useState([]);
 
-  const [message, setMessage] = useState(null); 
+  const [message, setMessage] = useState(null);
 
   const [loading, setLoading] = useState(false);
 
@@ -213,7 +214,8 @@ const Dashboard = ({ folderId = 1, onFolderSelect, searchQuery }) => {
   const [deletebutton1, setDeletebutton1] = useState(false);
   // const [filteredFiles, setFilteredFiles] = useState();
   const [username, setUsername] = useState("");
-
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [editFileId2, setEditFileId2] = useState(null);
   const setPermission1 = async (index, data, userId) => {
     const token = localStorage.getItem("token");
     const response = await axios.post(
@@ -241,11 +243,123 @@ const Dashboard = ({ folderId = 1, onFolderSelect, searchQuery }) => {
   //   console.log("Updated files:", updatedFiles); // Replace with your state update logic
   //   setEditingFileId(null); // Exit editing mode
   // };
+  const handleEmailSelection = (e) => {
+    const selectedValues = [...e.target.selectedOptions].map(option => option.value);
+    setSelectedEmails(selectedValues);
+  };
 
+  const toggleDropdown = () => {
+    setIsDropdownOpen(!isDropdownOpen);
+  };
   useEffect(() => {
     console.log("API response for fileIds (updated):", fileIds);
   }, [fileIds]);
 
+
+  const fetchUsersWithFileAccess = async (fileId) => {
+    try {
+      setLoading(true);
+      setError(null); // Reset error before making request
+  
+      const token = localStorage.getItem("token");
+      if (!token) throw new Error("Authentication token is missing");
+  
+      const response = await axios.post(
+        `${API_URL}/api/designee/assignments`,
+        { file_id: fileId },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+  
+      const designees = response.data.data;
+      const filteredUsers = designees.map((user) => ({
+        name: user.name,
+        email: user.email,
+        phone_number: user.phone_number,
+        permission: user.access,
+        role: user.role || "Viewer", // Assuming you might get role from the API
+        avatar: user.avatar || "https://placehold.co/40", // Use real avatar if available
+      }));
+  
+      setAccess(true);
+      setUsers(filteredUsers);
+      console.log("userrr",users);
+    } catch (error) {
+      setError("Failed to fetch data. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  };
+  
+  const updatePermission = async (voiceId,email, permission, index) => {
+    try {
+      console.log("Updating access for:", voiceId);
+      console.log("New permission:", permission);
+      console.log("New voice_id:", email);
+      const token = localStorage.getItem("token");
+      
+      // Ensure you have the correct voice_id available in your component or state
+  
+  
+      // Ensure `voice_id` is included in the request payload
+      const response = await axios.post(
+        `${API_URL}/api/designee/update-access`,
+        {
+          to_email_id: email,  // Pass email instead of index
+          edit_access: permission,
+          file_id: voiceId,   // Include voice_id in the request
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,  // Add token to Authorization header
+          },
+        }
+      );
+  
+      if (response.status === 200) {
+        // Update the permission locally after a successful API response
+        const updatedUsers = [...users];
+        updatedUsers[index].permission = permission;
+        setUsers(updatedUsers);
+        setShowDropdown(false);
+        alert("Access level updated successfully");
+      }
+    } catch (error) {
+      console.error("Error updating permission:", error);
+      alert("Failed to update permission. Please try again.");
+      setShowDropdown(false);
+    }
+  };
+  
+  const removeUser = async (index) => {
+    const user = users[index];
+    // const file_id = user.file_id;  // Assuming the file_id is stored in the user object
+    const voice_id = user.voice_id; // Assuming the voice_id is stored in the user object
+  
+    try {
+      const token = localStorage.getItem("token");
+      // Make the API call to remove access
+      console.log("file_id".voice_id);
+      const response = await axios.post(`${API_URL}/api/designee/update-access`, {
+        to_email_id: user.email,
+        edit_access: permission,
+        file_id: voice_id || null, // Only pass voice_id if it exists
+      }, {
+        headers: {
+          Authorization: `Bearer ${token}`,  // Add token to Authorization header
+        },
+      });
+  
+      if (response.status === 200) {
+        // Remove the user from the list
+        const updatedUsers = users.filter((_, i) => i !== index);
+        setUsers(updatedUsers);
+        alert('Access removed successfully');
+      }
+    } catch (error) {
+      console.error('Error removing user access:', error);
+      alert('Failed to remove access. Please try again.');
+    }
+  };
 
   useEffect(() => {
     console.log("Current editing file ID:", editFileId);
@@ -277,7 +391,7 @@ const Dashboard = ({ folderId = 1, onFolderSelect, searchQuery }) => {
   }, []);
 
   const handleClick = () => {
-    console.log("file hdbjcbhbckdnchbcb",file);
+    console.log("file hdbjcbhbckdnchbcb", file);
     shareFile(file); // Calling the share function after setting the file ID
   };
 
@@ -492,7 +606,7 @@ const Dashboard = ({ folderId = 1, onFolderSelect, searchQuery }) => {
       setLoading(false);
     }
   };
-  
+
   useEffect(() => {
     fetchDesignees();
   }, []);
@@ -553,20 +667,6 @@ const Dashboard = ({ folderId = 1, onFolderSelect, searchQuery }) => {
     setTags("");
   };
 
-  const removeUser = (index) => {
-    setUsers(users.filter((_, i) => i !== index));
-  };
-
-  const updatePermission = (index, permission) => {
-    const updatedUsers = [...users];
-
-    updatedUsers[index].permission = permission;
-
-    setUsers(updatedUsers);
-
-    setShowDropdown(null);
-  };
-
   const fetchFolders = async () => {
     setLoading(true);
 
@@ -624,7 +724,7 @@ const Dashboard = ({ folderId = 1, onFolderSelect, searchQuery }) => {
 
   const fetchFiles = async () => {
     setLoading(true);
-     setFiles([]);
+    setFiles([]);
     setError(null);
 
     try {
@@ -643,64 +743,64 @@ const Dashboard = ({ folderId = 1, onFolderSelect, searchQuery }) => {
 
       if (folderId === 0) {
         const userId = localStorage.getItem("user");
-  console.log("User ID:", userId);
+        console.log("User ID:", userId);
 
-  if (!userId) {
-    throw new Error("No userId found. Please log in again.");
-  }
+        if (!userId) {
+          throw new Error("No userId found. Please log in again.");
+        }
 
-  console.log("Folder ID is 0, fetching all files for userId:", userId);
-  setFiles([]);
+        console.log("Folder ID is 0, fetching all files for userId:", userId);
+        setFiles([]);
 
- try {
-  const response = await axios.get(`${API_URL}/api/get-all-files`, {
-    headers: { Authorization: `Bearer ${token}` },
-  });
+        try {
+          const response = await axios.get(`${API_URL}/api/get-all-files`, {
+            headers: { Authorization: `Bearer ${token}` },
+          });
 
-  console.log("API response for all files and voice memos:", response.data);
+          console.log("API response for all files and voice memos:", response.data);
 
-  const aaple = response.data; // Ensure this is an array
-  console.log("aaple:", aaple);
+          const aaple = response.data; // Ensure this is an array
+          console.log("aaple:", aaple);
 
-  // Directly set files from response data
-  setFiles(aaple);
-  console.log("aaple 4444");
-  console.log("aaple:", files);
-  // Filter voice memos directly from the response
-  const voiceMemos = aaple.filter(file => file.voice_name);
+          // Directly set files from response data
+          setFiles(aaple);
+          console.log("aaple 4444");
+          console.log("aaple:", files);
+          // Filter voice memos directly from the response
+          const voiceMemos = aaple.filter(file => file.voice_name);
 
-  // Log each voice memo
-  voiceMemos.forEach(memo => {
-    console.log(`Voice Name: ${memo.voice_name}`);
-    console.log(`Duration: ${memo.duration} seconds`);
-    console.log(`File Size: ${memo.file_size} KB`);
-    console.log(`Link: ${memo.aws_file_link}`);
-    console.log("-----------------------------");
-  });
-    setNeed(false); // Assuming this is to indicate loading state is complete
+          // Log each voice memo
+          voiceMemos.forEach(memo => {
+            console.log(`Voice Name: ${memo.voice_name}`);
+            console.log(`Duration: ${memo.duration} seconds`);
+            console.log(`File Size: ${memo.file_size} KB`);
+            console.log(`Link: ${memo.aws_file_link}`);
+            console.log("-----------------------------");
+          });
+          setNeed(false); // Assuming this is to indicate loading state is complete
 
-    // Handle successful response
-  
-  } catch (error) {
-    console.error("Error fetching files and voice memos:", error);
+          // Handle successful response
 
-    // Handle different types of errors
-    if (error.response) {
-      // If there is a response from the server (non-2xx)
-      console.error("Server responded with error:", error.response.data);
-      alert(`Error: ${error.response.data.message || "Failed to fetch files."}`);
-    } else if (error.request) {
-      // If the request was made but no response was received
-      console.error("No response received:", error.request);
-      alert("No response from server. Please try again later.");
-    } else {
-      // Other errors like network issues, etc.
-      console.error("Request setup error:", error.message);
-      alert("There was an error setting up the request. Please try again.");
-    }
+        } catch (error) {
+          console.error("Error fetching files and voice memos:", error);
 
-    setNeed(false); // Reset loading state on error
-  }
+          // Handle different types of errors
+          if (error.response) {
+            // If there is a response from the server (non-2xx)
+            console.error("Server responded with error:", error.response.data);
+            alert(`Error: ${error.response.data.message || "Failed to fetch files."}`);
+          } else if (error.request) {
+            // If the request was made but no response was received
+            console.error("No response received:", error.request);
+            alert("No response from server. Please try again later.");
+          } else {
+            // Other errors like network issues, etc.
+            console.error("Request setup error:", error.message);
+            alert("There was an error setting up the request. Please try again.");
+          }
+
+          setNeed(false); // Reset loading state on error
+        }
       } else if (folderId === 1) {
         setFiles([]);
 
@@ -734,10 +834,10 @@ const Dashboard = ({ folderId = 1, onFolderSelect, searchQuery }) => {
         console.log("API response for folderId:", response.data);
 
         setNeed(false);
-      
-      
+
+
         setFiles(response.data || []);
-        console.log("API response for files:",files);
+        console.log("API response for files:", files);
         const ids = data.map(file => file._id);
         setFileIds(ids);
       }
@@ -1018,7 +1118,7 @@ const Dashboard = ({ folderId = 1, onFolderSelect, searchQuery }) => {
     // Check for missing values
 
     if (!token) {
-      setMessage("No token found. Please log in.");
+      // setMessage("No token found. Please log in.");
 
       console.error("Missing token");
 
@@ -1026,7 +1126,7 @@ const Dashboard = ({ folderId = 1, onFolderSelect, searchQuery }) => {
     }
 
     if (!selectedFolder) {
-      setMessage("No folder selected.");
+      // setMessage("No folder selected.");
 
       console.error("Missing folderId");
 
@@ -1034,7 +1134,7 @@ const Dashboard = ({ folderId = 1, onFolderSelect, searchQuery }) => {
     }
 
     if (!file_id) {
-      setMessage("No file selected to delete.");
+      // setMessage("No file selected to delete.");
 
       console.error("Missing file_id");
 
@@ -1054,11 +1154,11 @@ const Dashboard = ({ folderId = 1, onFolderSelect, searchQuery }) => {
 
       setFiles(files.filter((file) => file._id !== file_id));
 
-      setMessage(response.data.message || "File deleted successfully.");
+      console.log(response.data.message || "File deleted successfully.");
 
       setDeletebutton(false);
     } catch (error) {
-      setMessage(error.response?.data?.message || "Error deleting file.");
+      console.log(error.response?.data?.message || "Error deleting file.");
     }
   };
 
@@ -1138,7 +1238,7 @@ const Dashboard = ({ folderId = 1, onFolderSelect, searchQuery }) => {
       console.error("Error fetching file content:", err);
       setError(
         err.response?.data?.message ||
-          "An unexpected error occurred while fetching the file content."
+        "An unexpected error occurred while fetching the file content."
       );
     } finally {
       setLoading(false);
@@ -1198,7 +1298,7 @@ const Dashboard = ({ folderId = 1, onFolderSelect, searchQuery }) => {
 
     if (
       mimeType ===
-        "application/vnd.openxmlformats-officedocument.wordprocessingml.document" ||
+      "application/vnd.openxmlformats-officedocument.wordprocessingml.document" ||
       mimeType === "application/msword" ||
       mimeType === "docx" // In case backend sends 'docx' instead of full MIME type
     ) {
@@ -1220,7 +1320,7 @@ const Dashboard = ({ folderId = 1, onFolderSelect, searchQuery }) => {
 
     if (
       mimeType ===
-        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" ||
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" ||
       mimeType === "application/vnd.ms-excel"
     ) {
       return (
@@ -1259,34 +1359,36 @@ const Dashboard = ({ folderId = 1, onFolderSelect, searchQuery }) => {
     };
   }, []);
   const renderOverlay = () => {
-  
-  
+
+
     return (
       <div
-      className="fixed top-0 left-0 w-[100vw] h-[100%] bg-[rgba(0,0,0,0.8)] text-white z-[1000] flex justify-center items-center"
-    >
-      <div
-        className="bg-white text-black p-5 rounded-lg max-w-[90%] max-h-[90%] overflow-y-auto relative w-[80%] h-auto"
-        style={{
-          userSelect: "none", // Disable text selection if needed
-          // Removed pointerEvents: "none" to allow interactions
-        }}
+        className="fixed top-0 left-0 w-[100vw] h-[100%] bg-[rgba(0,0,0,0.8)] text-white z-[1000] flex justify-center items-center"
       >
-        <h2>Document Viewer</h2>
-        {renderFileContent()}
-        <button
-          className="absolute top-[10px] right-[10px] bg-red-500 text-white border-none px-[10px] py-[2px] rounded border border-blue-500"
-          onClick={() => setShowOverlay(false)}
+        <div
+          className="bg-white text-black p-5 rounded-lg max-w-[90%] max-h-[90%] overflow-y-auto relative w-[80%] h-auto"
+          style={{
+            userSelect: "none", // Disable text selection if needed
+            // Removed pointerEvents: "none" to allow interactions
+          }}
         >
-          X
-        </button>
+          <h2>Document Viewer</h2>
+          {renderFileContent()}
+          <button
+            className="absolute top-[10px] right-[10px] bg-red-500 text-white border-none px-[10px] py-[2px] rounded border border-blue-500"
+            onClick={() => setShowOverlay(false)}
+          >
+            X
+          </button>
+        </div>
       </div>
-    </div>
-    
+
     );
   };
-  
 
+  const filteredDesignees = designees.filter((designee) =>
+    designee.name?.toLowerCase().includes(MobilesearchQuery.toLowerCase())
+  );
   const filteredFiles = files.filter((file) =>
     file.file_name?.toLowerCase().includes(searchQuery)
   );
@@ -1315,29 +1417,30 @@ const Dashboard = ({ folderId = 1, onFolderSelect, searchQuery }) => {
       console.error("No designees selected.");
       return;
     }
-  
+
     const token = localStorage.getItem("token");
     console.log("token", token);
     console.log("notify", notify);
     console.log("to_email_id", selectedEmails);
     console.log("file_ids before check", fileId);  // Debugging the fileId here  
     console.log("file_id before check", file);  // Debugging the fileId here
-  
+
     if (!selectedEmails || !token || !fileId || fileId.length === 0) {
       console.error("Missing required fields: to_email_id, token, or file_id.");
       return;
     }
-  
+
     // Ensure fileId is an array
     const filesToShare = Array.isArray(fileId) ? fileId : [fileId];
-  
+
     console.log("Files to share", filesToShare);  // Debugging the final files array
-  
+
     const data = {
       file_id: filesToShare, // Single file ID
       to_email_id: selectedEmails, // Array of emails
       access: "view", // Adjust as needed
-      notify: notify, // Optional, include if notifications are needed
+      notify: notify,
+      message: message, // Optional, include if notifications are needed
     };
     console.log("data before check", data);  // Debugging the fileId here
     try {
@@ -1350,20 +1453,20 @@ const Dashboard = ({ folderId = 1, onFolderSelect, searchQuery }) => {
           },
         }
       );
-  
+
       // Handle the response, if needed
       console.log("File shared successfully:", response.data);
-  const [shareFolderModal, setShareFolderModal] = useState(false);
+      // const [shareFolderModal, setShareFolderModal] = useState(false);
 
     } catch (error) {
       console.error("Error sharing file:", error);
     }
-    finally{
+    finally {
       setShareFolderModal(false);
     }
   };
-  
-  
+
+
 
   // const shareFile = async (file_id) => {
   //   const storedUser = localStorage.getItem("user");
@@ -1482,7 +1585,7 @@ const Dashboard = ({ folderId = 1, onFolderSelect, searchQuery }) => {
               {/* Folder Name */}
               <div className="flex items-center md:gap-x-2 border-b-4 border-blue-500 text-blue-500">
                 <span className=" font-semibold pb-2 mr-2">
-                {file.folder_name ? file.folder_name : 'Cumulus'}
+                  {file.folder_name ? file.folder_name : 'Cumulus'}
 
                 </span>
                 <span className="text-black rounded-lg text-sm mt-1 mb-2 px-2.5 bg-[#EEEEEF]">
@@ -1500,7 +1603,7 @@ const Dashboard = ({ folderId = 1, onFolderSelect, searchQuery }) => {
               onClick={() => {
                 setFile(fileIds);
                 setShareFolderModal(true);
-               
+
               }}
             >
               <div className="h-4 text-blue-500 flex items-center justify-center pl-1">
@@ -1578,8 +1681,8 @@ const Dashboard = ({ folderId = 1, onFolderSelect, searchQuery }) => {
                             <button
                               className="flex items-center gap-2 text-gray-600 hover:text-blue-500"
                               onClick={() => {
-                                setShare(true);
-                                setOpenMenuId(null); // Close menu after selecting
+                                setFile(file._id);
+                                setShareFolderModal(true); // Close menu after selecting
                               }}
                             >
                               {/* <Users className="h-4" /> */}
@@ -1638,16 +1741,16 @@ const Dashboard = ({ folderId = 1, onFolderSelect, searchQuery }) => {
                               Delete
                             </button>
                             <button
-                          className="flex items-center gap-2 text-gray-600 hover:text-blue-500"
-                          onClick={() => {
-                            handleDownloadFile(file._id);
-                            setOpenMenuId(null);
-                          }}
-                        >
-                          {/* <Download className="h-4 font-extrabold" /> */}
-                          <img src={downloadicon} alt="" className="h-4" />
-                          Download
-                        </button>
+                              className="flex items-center gap-2 text-gray-600 hover:text-blue-500"
+                              onClick={() => {
+                                handleDownloadFile(file._id);
+                                setOpenMenuId(null);
+                              }}
+                            >
+                              {/* <Download className="h-4 font-extrabold" /> */}
+                              <img src={downloadicon} alt="" className="h-4" />
+                              Download
+                            </button>
                           </>
                         )}
 
@@ -1662,7 +1765,7 @@ const Dashboard = ({ folderId = 1, onFolderSelect, searchQuery }) => {
                           <img src={eyeicon} alt="" className="h-4" />
                           View Content
                         </button>
-                      
+
                       </motion.div>
                     )}
                   </div>
@@ -1674,27 +1777,27 @@ const Dashboard = ({ folderId = 1, onFolderSelect, searchQuery }) => {
                   <span className="">
                     <p className=" text-sm text-gray-800  ">
                       {file.date_of_upload &&
-                      !isNaN(new Date(file.date_of_upload))
+                        !isNaN(new Date(file.date_of_upload))
                         ? new Date(file.date_of_upload).toLocaleString(
-                            "en-US",
-                            {
-                              weekday: "short",
+                          "en-US",
+                          {
+                            weekday: "short",
 
-                              year: "numeric",
+                            year: "numeric",
 
-                              month: "short",
+                            month: "short",
 
-                              day: "numeric",
+                            day: "numeric",
 
-                              hour: "numeric",
+                            hour: "numeric",
 
-                              minute: "numeric",
+                            minute: "numeric",
 
-                              // second: 'numeric',
+                            // second: 'numeric',
 
-                              hour12: true, // for 24-hour format
-                            }
-                          )
+                            hour12: true, // for 24-hour format
+                          }
+                        )
                         : "Invalid Date"}
                     </p>
                   </span>
@@ -1712,7 +1815,7 @@ const Dashboard = ({ folderId = 1, onFolderSelect, searchQuery }) => {
 
           <div className="mt-2 bg-white rounded hidden md:flex max-h-[70vh] pb-[20px] overflow-y-scroll">
             <table className="w-full">
-            <thead>
+              <thead>
                 <tr className="bg-gray-100 text-left text-[0.8rem]  border-black">
                   <th className="p-2 md:p-4 font-medium text-[#667085] text-sm">
                     File Name
@@ -1740,66 +1843,63 @@ const Dashboard = ({ folderId = 1, onFolderSelect, searchQuery }) => {
 
                     return (
                       <React.Fragment key={file._id}>
-                      {/* Main Row */}
-                      <tr
-                        className={`text-xs sm:text-sm border-b-2 ${
-                          isExpanded ? "bg-blue-100 border-blue-100" : ""
-                        } transition-all duration-100`}
-                      >
-                        <td className="p-0 md:p-4 flex items-center gap-0 md:gap-2">
-                          <button
-                            className="text-gray-500 hover:text-gray-800"
-                            onClick={() => handleToggleRow(file._id)}
-                          >
-                            <ChevronDown
-                              className={`${
-                                isExpanded ? "rotate-180" : ""
-                              } h-5 transition-transform`}
-                            />
-                          </button>
-                    
-                          {String(editFileId) === String(file._id) ? (
-                            <div className="flex items-center gap-2 border-b-2 border-blue-500 pt-2">
-                              <input
-                                type="text"
-                                value={tempFName}
-                                onChange={(e) => {
-                                  setTempFName(e.target.value);
-                                  console.log("Temp File Name:", e.target.value);
-                                }}
-                                onBlur={() => handleSaveFName(file._id)} // Save the new file name when input loses focus
-                                className="rounded p-1 bg-transparent outline-none"
-                                autoFocus
+                        {/* Main Row */}
+                        <tr
+                          className={`text-xs sm:text-sm border-b-2 ${isExpanded ? "bg-blue-100 border-blue-100" : ""
+                            } transition-all duration-100`}
+                        >
+                          <td className="p-0 md:p-4 flex items-center gap-0 md:gap-2">
+                            <button
+                              className="text-gray-500 hover:text-gray-800"
+                              onClick={() => handleToggleRow(file._id)}
+                            >
+                              <ChevronDown
+                                className={`${isExpanded ? "rotate-180" : ""
+                                  } h-5 transition-transform`}
                               />
-                              <button
-                                className="text-blue-500 hover:text-blue-700 px-3 py-1 bg-gray-100 rounded-md bg-transparent"
-                                onClick={() => handleSaveFName(file._id)} // Save on button click
-                              >
-                                Save
-                              </button>
-                            </div>
-                          ) : (
-                            <div className="flex items-center font-normal text-sm gap-2">
-                              {file.file_name}
-                            </div>
-                          )}
-                        </td>
-                    
-                        <td className="p-0 md:p-4">
-                          <div
-                            className={`bg-[#EEEEEF] rounded-lg px-3 py-1 text-[1rem] inline-block transition-all duration-300 ${
-                              isExpanded ? "bg-white" : "bg-[#EEEEEF]"
-                            }`}
-                          >
-                             {file.folder_name ? file.folder_name : 'Cumulus'}
+                            </button>
 
-                          </div>
-                        </td>
-                        <td className="p-0 md:p-4">
-                          <p className="text-xss sm:text-sm text-gray-600 mt-1">
-                            {file.date_of_upload &&
-                            !isNaN(new Date(file.date_of_upload))
-                              ? new Date(file.date_of_upload).toLocaleString("en-US", {
+                            {String(editFileId) === String(file._id) ? (
+                              <div className="flex items-center gap-2 border-b-2 border-blue-500 pt-2">
+                                <input
+                                  type="text"
+                                  value={tempFName}
+                                  onChange={(e) => {
+                                    setTempFName(e.target.value);
+                                    console.log("Temp File Name:", e.target.value);
+                                  }}
+                                  onBlur={() => handleSaveFName(file._id)} // Save the new file name when input loses focus
+                                  className="rounded p-1 bg-transparent outline-none"
+                                  autoFocus
+                                />
+                                <button
+                                  className="text-blue-500 hover:text-blue-700 px-3 py-1 bg-gray-100 rounded-md bg-transparent"
+                                  onClick={() => handleSaveFName(file._id)} // Save on button click
+                                >
+                                  Save
+                                </button>
+                              </div>
+                            ) : (
+                              <div className="flex items-center font-normal text-sm gap-2">
+                                {file.file_name}
+                              </div>
+                            )}
+                          </td>
+
+                          <td className="p-0 md:p-4">
+                            <div
+                              className={`bg-[#EEEEEF] rounded-lg px-3 py-1 text-[1rem] inline-block transition-all duration-300 ${isExpanded ? "bg-white" : "bg-[#EEEEEF]"
+                                }`}
+                            >
+                              {file.folder_name ? file.folder_name : 'Cumulus'}
+
+                            </div>
+                          </td>
+                          <td className="p-0 md:p-4">
+                            <p className="text-xss sm:text-sm text-gray-600 mt-1">
+                              {file.date_of_upload &&
+                                !isNaN(new Date(file.date_of_upload))
+                                ? new Date(file.date_of_upload).toLocaleString("en-US", {
                                   weekday: "short",
                                   year: "numeric",
                                   month: "short",
@@ -1808,137 +1908,141 @@ const Dashboard = ({ folderId = 1, onFolderSelect, searchQuery }) => {
                                   minute: "numeric",
                                   hour12: true, // for 12-hour format
                                 })
-                              : "Invalid Date"}
-                          </p>
-                        </td>
-                        <td className="p-0 md:p-4">{file.sharing_contacts}</td>
-                      </tr>
-                    
-                      {/* Expanded Row */}
-                      {isExpanded && (
-                        <tr className="z-10">
-                          <td
-                            colSpan="5"
-                            className="px-4 pb-4 border-r border-blue-100 bg-blue-100 rounded-bl-3xl rounded-br-3xl"
-                          >
-                            <div className="flex gap-4 items-center">
-                              {!need && (
-                                <>
-                                  <button
-                                    className="relative group flex items-center gap-2 text-gray-600 hover:text-blue-500"
-                                    onClick={() => {
-                                      setFile(file._id);
-                                      setShareFolderModal(true);
-                                     
-                                    }}
-                                  >
-                                    <img
-                                      src={shareicondesignee}
-                                      alt=""
-                                      className="h-4"
-                                    />
-                                    <span className="absolute bottom-[-45px] left-2/3 transform -translate-x-1/2 hidden min-w-[110px] group-hover:block bg-white text-black text-xs py-1 px-1 rounded shadow z-20">
-                                      Share with Designee
-                                    </span>
-                                  </button>
-                                  <button
-                                    className="relative group flex items-center gap-2 text-gray-600 hover:text-blue-500"
-                                    onClick={() => setAccess(true)}
-                                  >
-                                    <img
-                                      src={foldericon}
-                                      alt=""
-                                      className="h-4"
-                                    />
-                                    <span className="absolute bottom-[-30px] left-1/2 transform -translate-x-1/2 hidden group-hover:block min-w-[80px] bg-white text-black text-xs py-1 px-2 rounded shadow z-20">
-                                      Full Access
-                                    </span>
-                                  </button>
-                                  <button
-                                    className="relative group flex items-center gap-2 text-gray-600 hover:text-blue-500"
-                                    onClick={() => {
-                                      setEditFileId(file._id);
-                                      setTempFName(file.file_name);
-                                      console.log("Editing File ID:", file._id);
-                                    }}
-                                  >
-                                    <img
-                                      src={editicon}
-                                      alt=""
-                                      className="h-4"
-                                    />
-                                    <span className="absolute bottom-[-30px] left-1/2 transform -translate-x-1/2 hidden group-hover:block bg-white min-w-[100px] text-black text-xs py-1 px-1 rounded shadow z-20">
-                                      Edit Document
-                                    </span>
-                                  </button>
-                    
-                                  <button
-                                    className="relative group flex items-center gap-2 text-gray-600 hover:text-red-500"
-                                    onClick={() => {
-                                      setDeletebutton(true);
-                                      console.log("Deleting file with ID:", file._id);
-                                      setSelectedFileId(file._id);
-                                    }}
-                                  >
-                                    <img
-                                      src={trashicon}
-                                      alt=""
-                                      className="h-4"
-                                    />
-                                    <span className="absolute bottom-[-30px] left-1/2 transform -translate-x-1/2 hidden group-hover:block bg-white text-black text-xs py-1 px-2 rounded shadow z-20">
-                                      Delete
-                                    </span>
-                                  </button>
-                                  <button
-                                    className="relative group flex items-center gap-2 text-gray-600 hover:text-blue-500"
-                                    onClick={() => handleDownloadFile(file._id)}
-                                  >
-                                    <img
-                                      src={downloadicon}
-                                      alt=""
-                                      className="h-4"
-                                    />
-                                    <span className="absolute bottom-[-30px] left-1/2 transform -translate-x-1/2 hidden group-hover:block bg-white text-black text-xs py-1 px-2 rounded shadow z-20">
-                                      Download
-                                    </span>
-                                  </button>
-                                </>
-                              )}
-                    
-                              <button
-                                className="relative group flex items-center gap-2 text-gray-600 hover:text-blue-500"
-                                onClick={() => fetchFileContent(file._id)}
-                              >
-                                <img src={eyeicon} alt="" className="h-4" />
-                                <span className="absolute bottom-[-30px] left-1/2 transform -translate-x-1/2 hidden group-hover:block bg-white text-black text-xs py-1 px-2 rounded shadow z-20">
-                                  View
-                                </span>
-                              </button>
-                    
-                              {/* Conditionally render Files and Voice based on availability */}
-                              {file.hasFile && (
-                                <div className="text-gray-600">
-                                  <h3>Files:</h3>
-                                  {/* Display the file content or link here */}
-                                  <p>{file.fileContent || "No file content available"}</p>
-                                </div>
-                              )}
-                              {file.hasVoice && (
-                                <div className="text-gray-600">
-                                  <h3>Voice:</h3>
-                                  {/* Display the voice content or player here */}
-                                  <audio controls>
-                                    <source src={file.voiceUrl} type="audio/mp3" />
-                                    Your browser does not support the audio element.
-                                  </audio>
-                                </div>
-                              )}
-                            </div>
+                                : "Invalid Date"}
+                            </p>
                           </td>
+                          <td className="p-0 md:p-4">{file.sharing_contacts}</td>
                         </tr>
-                      )}
-                    </React.Fragment>
-                    
+
+                        {/* Expanded Row */}
+                        {isExpanded && (
+                          <tr className="z-10">
+                            <td
+                              colSpan="5"
+                              className="px-4 pb-4 border-r border-blue-100 bg-blue-100 rounded-bl-3xl rounded-br-3xl"
+                            >
+                              <div className="flex gap-4 items-center">
+                                {!need && (
+                                  <>
+                                    <button
+                                      className="relative group flex items-center gap-2 text-gray-600 hover:text-blue-500"
+                                      onClick={() => {
+                                        setFile(file._id);
+                                        setShareFolderModal(true);
+
+                                      }}
+                                    >
+                                      <img
+                                        src={shareicondesignee}
+                                        alt=""
+                                        className="h-4"
+                                      />
+                                      <span className="absolute bottom-[-45px] left-2/3 transform -translate-x-1/2 hidden min-w-[110px] group-hover:block bg-white text-black text-xs py-1 px-1 rounded shadow z-20">
+                                        Share with Designee
+                                      </span>
+                                    </button>
+                                    <button
+                                      className="relative group flex items-center gap-2 text-gray-600 hover:text-blue-500"
+                                      onClick={() => {
+                                        setEditFileId2(file._id);
+                                        fetchUsersWithFileAccess(file._id);
+                                        console.log("Editing File ID:", file._id);
+                                      }}
+                                    >
+                                      <img
+                                        src={foldericon}
+                                        alt=""
+                                        className="h-4"
+                                      />
+                                      <span className="absolute bottom-[-30px] left-1/2 transform -translate-x-1/2 hidden group-hover:block min-w-[80px] bg-white text-black text-xs py-1 px-2 rounded shadow z-20">
+                                        Full Access
+                                      </span>
+                                    </button>
+                                    <button
+                                      className="relative group flex items-center gap-2 text-gray-600 hover:text-blue-500"
+                                      onClick={() => {
+                                        setEditFileId(file._id);
+                                        setTempFName(file.file_name);
+                                        console.log("Editing File ID:", file._id);
+                                      }}
+                                    >
+                                      <img
+                                        src={editicon}
+                                        alt=""
+                                        className="h-4"
+                                      />
+                                      <span className="absolute bottom-[-30px] left-1/2 transform -translate-x-1/2 hidden group-hover:block bg-white min-w-[100px] text-black text-xs py-1 px-1 rounded shadow z-20">
+                                        Edit Document
+                                      </span>
+                                    </button>
+
+                                    <button
+                                      className="relative group flex items-center gap-2 text-gray-600 hover:text-red-500"
+                                      onClick={() => {
+                                        setDeletebutton(true);
+                                        console.log("Deleting file with ID:", file._id);
+                                        setSelectedFileId(file._id);
+                                      }}
+                                    >
+                                      <img
+                                        src={trashicon}
+                                        alt=""
+                                        className="h-4"
+                                      />
+                                      <span className="absolute bottom-[-30px] left-1/2 transform -translate-x-1/2 hidden group-hover:block bg-white text-black text-xs py-1 px-2 rounded shadow z-20">
+                                        Delete
+                                      </span>
+                                    </button>
+                                    <button
+                                      className="relative group flex items-center gap-2 text-gray-600 hover:text-blue-500"
+                                      onClick={() => handleDownloadFile(file._id)}
+                                    >
+                                      <img
+                                        src={downloadicon}
+                                        alt=""
+                                        className="h-4"
+                                      />
+                                      <span className="absolute bottom-[-30px] left-1/2 transform -translate-x-1/2 hidden group-hover:block bg-white text-black text-xs py-1 px-2 rounded shadow z-20">
+                                        Download
+                                      </span>
+                                    </button>
+                                  </>
+                                )}
+
+                                <button
+                                  className="relative group flex items-center gap-2 text-gray-600 hover:text-blue-500"
+                                  onClick={() => fetchFileContent(file._id)}
+                                >
+                                  <img src={eyeicon} alt="" className="h-4" />
+                                  <span className="absolute bottom-[-30px] left-1/2 transform -translate-x-1/2 hidden group-hover:block bg-white text-black text-xs py-1 px-2 rounded shadow z-20">
+                                    View
+                                  </span>
+                                </button>
+
+                                {/* Conditionally render Files and Voice based on availability */}
+                                {file.hasFile && (
+                                  <div className="text-gray-600">
+                                    <h3>Files:</h3>
+                                    {/* Display the file content or link here */}
+                                    <p>{file.fileContent || "No file content available"}</p>
+                                  </div>
+                                )}
+                                {file.hasVoice && (
+                                  <div className="text-gray-600">
+                                    <h3>Voice:</h3>
+                                    {/* Display the voice content or player here */}
+                                    <audio controls>
+                                      <source src={file.voiceUrl} type="audio/mp3" />
+                                      Your browser does not support the audio element.
+                                    </audio>
+                                  </div>
+                                )}
+                              </div>
+                            </td>
+                          </tr>
+                        )}
+                      </React.Fragment>
+
                     );
                   })
                 ) : (
@@ -2115,7 +2219,7 @@ const Dashboard = ({ folderId = 1, onFolderSelect, searchQuery }) => {
                       </p>
                     )}
                   </span>
-
+                    
                   {/* Ellipsis Button */}
                   <button
                     onClick={(e) => {
@@ -2135,15 +2239,15 @@ const Dashboard = ({ folderId = 1, onFolderSelect, searchQuery }) => {
                       initial={{ opacity: 0, scale: 0.9, y: -10 }}
                       animate={{ opacity: 1, scale: 1, y: 0 }}
                       exit={{ opacity: 0, scale: 0.9, y: -10 }}
-                      transition={{ duration: 0.2, ease: "easeInOut" }}
+                      transition={{ duration: 0.2, ease: "easeInOut"}}
                     >
                       {!need && (
                         <>
                           <button
                             className="flex items-center gap-2 text-gray-600 hover:text-blue-500"
                             onClick={() => {
-                              setShare(true);
-                              setOpenMenuId(null); // Close menu after selecting
+                              setFile(file._id);
+                              setShareFolderModal(true); // Close menu after selecting
                             }}
                           >
                             {/* <Users className="h-4" /> */}
@@ -2194,16 +2298,16 @@ const Dashboard = ({ folderId = 1, onFolderSelect, searchQuery }) => {
                             Delete
                           </button>
                           <button
-                        className="flex items-center gap-2 text-gray-600 hover:text-blue-500"
-                        onClick={() => {
-                          handleDownloadFile(file._id);
-                          setOpenMenuId(null); // Close menu after selecting
-                        }}
-                      >
-                        {/* <Download className="h-4" /> */}
-                        <img src={downloadicon} alt="" className="h-4" />
-                        Download
-                      </button>
+                            className="flex items-center gap-2 text-gray-600 hover:text-blue-500"
+                            onClick={() => {
+                              handleDownloadFile(file._id);
+                              setOpenMenuId(null); // Close menu after selecting
+                            }}
+                          >
+                            {/* <Download className="h-4" /> */}
+                            <img src={downloadicon} alt="" className="h-4" />
+                            Download
+                          </button>
                         </>
                       )}
 
@@ -2218,7 +2322,7 @@ const Dashboard = ({ folderId = 1, onFolderSelect, searchQuery }) => {
                         <img src={eyeicon} alt="" className="h-4 " />
                         View Content
                       </button>
-                    
+
                     </motion.div>
                   )}
                 </div>
@@ -2242,24 +2346,24 @@ const Dashboard = ({ folderId = 1, onFolderSelect, searchQuery }) => {
                 <span className="">
                   <p className=" text-[1rem] text-gray-600  ">
                     {file.date_of_upload &&
-                    !isNaN(new Date(file.date_of_upload))
+                      !isNaN(new Date(file.date_of_upload))
                       ? new Date(file.date_of_upload).toLocaleString("en-US", {
-                          weekday: "short",
+                        weekday: "short",
 
-                          year: "numeric",
+                        year: "numeric",
 
-                          month: "short",
+                        month: "short",
 
-                          day: "numeric",
+                        day: "numeric",
 
-                          hour: "numeric",
+                        hour: "numeric",
 
-                          minute: "numeric",
+                        minute: "numeric",
 
-                          // second: 'numeric',
+                        // second: 'numeric',
 
-                          hour12: true, // for 24-hour format
-                        })
+                        hour12: true, // for 24-hour format
+                      })
                       : "Invalid Date"}
                   </p>
                 </span>
@@ -2746,182 +2850,205 @@ const Dashboard = ({ folderId = 1, onFolderSelect, searchQuery }) => {
         </div>
       )}
 
-{shareFolderModal && (
-  <div className="fixed inset-0 bg-gray-800 bg-opacity-50 flex items-center justify-center z-50">
-    <div className="mt-4 bg-white p-6 rounded-lg shadow-lg w-full max-w-md border border-gray-300">
-      <div className="flex justify-between items-center mb-4">
-        <h2 className="text-2xl font-semibold">
-          Share <span className="text-blue-600">Folder</span>
-        </h2>
-        <button   onClick={() => {
-                                      setFile("");
-                                      setShareFolderModal(false);
-                                     
-                                    }}>
-          <X className="w-5 h-5 text-gray-700 hover:text-red-500" />
-        </button>
-      </div>
-
-      {/* Designees dropdown */}
-      <div className="mb-4">
-        <h3 className="text-lg font-semibold">Select Designees</h3>
-        {loading ? (
-          <p>Loading designees...</p>
-        ) : (
-          <div className="space-y-2">
-            {designees.map((designee) => (
-              <div className="flex items-center" key={designee.email}>
-                <input
-                  type="checkbox"
-                  id={designee.email}
-                  checked={selectedEmails.includes(designee.email)}
-                  onChange={() => handleCheckboxChange(designee.email)}
-                  className="mr-2"
-                />
-                <label htmlFor={designee.email} className="text-sm">
-                  {designee.name} ({designee.email})
-                </label>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-
-      <div className="mb-4">
-        <textarea
-          placeholder="Message"
-          className="w-full border border-blue-500 rounded-lg p-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-          value={message}
-          onChange={handleMessageChange}
-        ></textarea>
-      </div>
-
-      <div className="flex items-center mb-4">
-        <input
-          type="checkbox"
-          id="notify"
-          checked={notify}
-          onChange={handleNotifyChange}
-          className="mr-2"
-        />
-        <label htmlFor="notify" className="text-sm">Notify people</label>
-      </div>
-
-      <div className="flex justify-end">
-        <button
-          onClick={handleClick} // Pass the file_id when clicking the 'Send' button
-          className="bg-blue-500 text-white py-2 px-4 rounded-lg hover:bg-blue-600"
-        >
-          Send
-        </button>
-      </div>
-    </div>
-  </div>
-)}
-
-      {access && (
-        <div className="fixed inset-0 bg-gray-800 bg-opacity-50 flex items-center justify-center z-50 ">
+      {shareFolderModal && (
+        <div className="fixed inset-0 bg-gray-800 bg-opacity-50 flex items-center justify-center z-50">
           <div className="mt-4 bg-white p-6 rounded-lg shadow-lg w-full max-w-md border border-gray-300">
-            <div className="flex justify-between items-center mb-6">
-              <h2 className="text-3xl font-bold">
-                Share <span className="text-blue-500">File</span>
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-2xl font-semibold">
+                Share <span className="text-blue-600">Folder</span>
               </h2>
+              <button onClick={() => {
+                setFile("");
+                setShareFolderModal(false);
 
-              <button
-                onClick={() => setAccess(null)}
-                className="p-2 rounded-full "
-              >
-                <X className="w-6 h-4 text-gray-700 hover:text-red-500" />
+              }}>
+                <X className="w-5 h-5 text-gray-700 hover:text-red-500" />
               </button>
             </div>
 
-            <div className="mb-6">
-              <AsyncSearchBar setCollabs={setCollabs} />
-              {/* <input
-                type="text"
-                placeholder="Add designee, members"
-                className="w-full p-3 border border-blue-500 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                value={newUser}
-                onChange={(e) => setNewUser(e.target.value)}
-              /> */}
-              <button
-                // onClick={addUser}     setShowDesignerPopup(true);
+            {/* Designees dropdown */}
+            <div className="mb-4">
+              <h3 className="text-lg font-semibold">Select Designees</h3>
 
-                className="mt-4 w-full p-3 bg-blue-500 text-white rounded-lg shadow-md hover:bg-blue-600"
-              >
-                Add
-              </button>
-            </div>
+              {loading ? (
+                <p>Loading designees...</p>
+              ) : (
+                <div>
+                  {/* Search input */}
+                  <input
+                    // type="text"
+                    // placeholder="Search designees..."
+                    // value={searchQuery}
 
-            <div>
-              <h3 className="text-xl font-semibold mb-4">People with access</h3>
+                    // onChange={(e) => MobilesetsearchQuery(e.target.value)}
+                    // className="mb-2 p-2 border text border-gray-300 rounded w-full"
+                    // onFocus={() => setIsDropdownOpen(true)}
+                    type="text"
+                    placeholder="Search"
+                    className="w-full mb-2 p-2 border  bg-transparent outline-none text-black"
+                    onChange={(e) => MobilesetsearchQuery(e.target.value)}
+                  />
 
-              {users.map((user, index) => (
-                <div
-                  key={index}
-                  className="flex items-center justify-between mb-4"
-                >
-                  <div className="flex items-center">
-                    <img
-                      src="https://placehold.co/40"
-                      alt="User avatar"
-                      className="w-12 h-12 rounded-full mr-4"
-                    />
+                  {/* Dropdown */}
 
-                    <div>
-                      <p className="font-semibold text-lg">{user.name}</p>
-
-                      <p className="text-gray-600 text-sm">{user.email}</p>
+                  <div className="relative">
+                    <div className="absolute w-full bg-white border border-gray-300 mt-2 rounded max-h-16 overflow-y-auto">
+                      {designees.length > 0 ? (
+                        filteredDesignees.map((designee) => (
+                          <div
+                            key={designee.email}
+                            className={`p-1 cursor-pointer ${selectedEmails.includes(designee.email) ? "text-blue-500" : ""}`}
+                            onClick={() => handleCheckboxChange(designee.email)}
+                          >
+                            {designee.name} ({designee.email})
+                          </div>
+                        ))
+                      ) : (
+                        <p className="p-2">No designees found.</p>
+                      )}
                     </div>
                   </div>
 
-                  {user.role === "Owner" ? (
-                    <p className="text-gray-500 text-sm">{user.permission}</p>
-                  ) : (
-                    <div className="relative">
-                      <button
-                        onClick={() =>
-                          setShowDropdown(showDropdown === index ? null : index)
-                        }
-                        className="text-blue-500 border border-gray-300 rounded-lg px-3 py-2 text-sm"
-                      >
-                        {user.permission}
-                      </button>
 
-                      {showDropdown === index && (
-                        <div className="absolute right-0 mt-2 w-48 bg-white border border-gray-300 rounded-lg shadow-lg z-70">
-                          <p
-                            className="px-4 py-2 cursor-pointer hover:bg-gray-100"
-                            onClick={() => updatePermission(index, "Only View")}
-                          >
-                            Only View
-                          </p>
-
-                          <p
-                            className="px-4 py-2 cursor-pointer hover:bg-gray-100"
-                            onClick={() =>
-                              updatePermission(index, "Edit Access")
-                            }
-                          >
-                            Edit Access
-                          </p>
-
-                          <p
-                            className="px-4 py-2 cursor-pointer hover:bg-gray-100"
-                            onClick={() => removeUser(index)}
-                          >
-                            Remove Access
-                          </p>
-                        </div>
-                      )}
+                  {/* Display selected emails */}
+                  {selectedEmails.length >= 0 && (
+                    <div className="mt-20">
+                      <h4 className="text-lg font-semibold">Selected Designees</h4>
+                      <ul className="border px-2">
+                        {selectedEmails.map((email, index) => (
+                          <li key={index} className="text-sm">
+                            {email}
+                          </li>
+                        ))}
+                      </ul>
                     </div>
                   )}
                 </div>
-              ))}
+              )}
+            </div>
+
+            <div className="mb-4">
+              <textarea
+                placeholder="Message"
+                className="w-full border border-blue-500 rounded-lg p-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                value={message}
+                onChange={handleMessageChange}
+              ></textarea>
+            </div>
+
+            <div className="flex items-center mb-4">
+              <input
+                type="checkbox"
+                id="notify"
+                checked={notify}
+                onChange={handleNotifyChange}
+                className="mr-2"
+              />
+              <label htmlFor="notify" className="text-sm">Notify people</label>
+            </div>
+
+            <div className="flex justify-end">
+              <button
+                onClick={handleClick} // Pass the file_id when clicking the 'Send' button
+                className="bg-blue-500 text-white py-2 px-4 rounded-lg hover:bg-blue-600"
+              >
+                Send
+              </button>
             </div>
           </div>
         </div>
       )}
+
+{access && (
+  <div className="fixed inset-0 bg-gray-800 bg-opacity-50 flex items-center justify-center z-50 ">
+    <div className="mt-4 bg-white p-6 rounded-lg shadow-lg w-full max-w-md border border-gray-300">
+      <div className="flex justify-between items-center mb-6">
+        <h2 className="text-3xl font-bold">
+          Share <span className="text-blue-500">File</span>
+        </h2>
+
+        <button
+          onClick={() => setAccess(false)}
+          className="p-2 rounded-full "
+        >
+          <X className="w-6 h-4 text-gray-700 hover:text-red-500" />
+        </button>
+      </div>
+
+      {loading && <p>Loading...</p>}
+      {error && <p className="text-red-500">{error}</p>}
+
+      <div>
+        <h3 className="text-xl font-semibold mb-4">People with access</h3>
+
+        {users.length > 0 ? (
+          users.map((user, index) => (
+            <div key={index} className="flex items-center justify-between mb-4">
+              <div className="flex items-center">
+                <img
+                  src={user.avatar}
+                  alt="User avatar"
+                  className="w-12 h-12 rounded-full mr-4"
+                />
+
+                <div>
+                  <p className="font-semibold text-lg">{user.name}</p>
+                  <p className="text-gray-600 text-sm">{user.email}</p>
+                </div>
+              </div>
+
+              {user.role === "Owner" ? (
+                <p className="text-gray-500 text-sm">{user.permission}</p>
+              ) : (
+                <div className="relative">
+                  <button
+                    onClick={() =>
+                      setShowDropdown(showDropdown === index ? null : index)
+                    }
+                    className="text-blue-500 border border-gray-300 rounded-lg px-3 py-2 text-sm"
+                  >
+                    {user.permission}
+                  </button>
+
+                  {showDropdown === index && (
+                    <div className="absolute right-0 mt-2 w-48 bg-white border border-gray-300 rounded-lg shadow-lg">
+                      <p
+                        className="px-4 py-2 cursor-pointer hover:bg-gray-100"
+                        onClick={() => updatePermission(editFileId2,user.email, "View", index)}
+                      >
+                        Only View
+                      </p>
+
+                      <p
+                        className="px-4 py-2 cursor-pointer hover:bg-gray-100"
+                        onClick={() => {
+                          // Check the file._id in the console
+                          console.log("File editFileId: ", editFileId2);  // Log file._id to the console
+                          updatePermission(editFileId2 , user.email, "Edit", index);
+                        }}
+                      >
+                        Edit Access
+                      </p>
+
+                      <p
+                        className="px-4 py-2 cursor-pointer hover:bg-gray-100"
+                        onClick={() => removeUser(index)}
+                      >
+                        Remove Access
+                      </p>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          ))
+        ) : (
+          <p>No users with access found.</p>
+        )}
+      </div>
+    </div>
+  </div>
+)}
 
       {deletebutton && (
         <div

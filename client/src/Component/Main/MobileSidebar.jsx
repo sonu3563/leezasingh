@@ -13,9 +13,12 @@ import {
   Menu,
   X,
   LogOut,
+  Loader2,
 } from "lucide-react";
+
 // import logo from "../../assets/logo.png";
-import DesignerPopup from "../Main/Designeepopup";
+import useLoadingStore from "../../store/UseLoadingStore";
+// import DesignerPopup from "../Main/Designeepopup";
 import usePopupStore from "../../store/DesigneeStore";
 import mobilelogo from "../../assets/mobilelogo.png"
 import Allfiles from "../../assets/Allfiles.png"
@@ -38,6 +41,8 @@ import {
 import { API_URL } from "../utils/Apiconfig";
 import fetchUserData from "./fetchUserData";
 const MobileSidebar = ({ onFolderSelect }) => {
+  const openPopup = usePopupStore((state) => state.openPopup);
+  const { isLoading, showLoading, hideLoading } = useLoadingStore();
   const [errorMessage, setErrorMessage] = useState("");
   const [folders, setFolders] = useState([]);
   const location = useLocation(); // Access current URL for routing
@@ -50,11 +55,12 @@ const MobileSidebar = ({ onFolderSelect }) => {
   const [viewAllFolders, setViewAllFolders] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null); // For handling errors
-  const openPopup = usePopupStore((state) => state.openPopup);
+  // const openPopup = usePopupStore((state) => state.openPopup);
   const [showDesignerPopup, setShowDesignerPopup] = useState(false);
   const [designeeName, setDesigneeName] = useState("");
   const [designeePhone, setDesigneePhone] = useState("");
   const [designeeEmail, setDesigneeEmail] = useState("");
+  const [closePopup, setclosePopup] = useState("");
   const [newDesigner, setNewDesigner] = useState("");
   const [showDesignerInput, setShowDesignerInput] = useState(false);
   // const [viewAllDesigners, setViewAllDesigners] = useState(false);
@@ -68,6 +74,8 @@ const MobileSidebar = ({ onFolderSelect }) => {
   // const [designeeEmail, setDesigneeEmail] = useState(""); // Holds the input for designee email
   const [deletebutton2, setDeletebutton2] = useState(false);
   const navigate = useNavigate();
+
+
   const [openMenuId, setOpenMenuId] = useState(() => {
     try {
       const storedValue = localStorage.getItem("openMenuId");
@@ -78,6 +86,49 @@ const MobileSidebar = ({ onFolderSelect }) => {
     }
   });
 
+  const fetchDesignees = async () => {
+    try {
+      const token = localStorage.getItem("token");
+      const response = await axios.post(
+        `${API_URL}/api/designee/auth-get`,
+        {}, // Empty body if you don't need to send any data in the request body
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+      setDesigners(response.data.designees); // Assuming response contains designees
+    } catch (error) {
+      console.error("Error fetching designees:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+  useEffect(() => {
+  fetchDesignees();
+}, []);
+
+
+  const handleAddDesignerClick = () => {
+    if (isMembershipActive) {
+      // Reset designee details if needed
+      setDesigneeName("");
+      setDesigneePhone("");
+      setDesigneeEmail("");
+
+      // Open the popup
+      openPopup();
+    } else {
+      // Handle when membership is not active
+      setDeletebutton2(true);
+    }
+  };
+  const handleSubmit = () => {
+    // Handle submission logic, e.g., saving the designee data
+    console.log("Designee submitted:", designeeName, designeePhone, designeeEmail);
+    closePopup();
+  };
   const toggleEllipses = (folderId) => {
     const newOpenMenuId = openMenuId === folderId ? null : folderId;
     setOpenMenuId(newOpenMenuId);
@@ -88,6 +139,9 @@ const MobileSidebar = ({ onFolderSelect }) => {
   const [membershipDetail, setMembershipDetail] = useState(null);
   const [deletebutton1, setDeletebutton1] = useState(false);
 
+  const handledesigneedashboard = () => {
+    navigate('/designee-dashboard'); // Replace '/target-route' with your desired route
+  };
   const handleClickhelp = () => {
     setIsOpen(false); // Close the menu or modal
     navigate('/help'); // Navigate to the desired route
@@ -332,14 +386,14 @@ const MobileSidebar = ({ onFolderSelect }) => {
     if (designeeName && designeePhone && designeeEmail) {
       setDesigners([...designers, designeeName]); // Add the new designer to the list
       //setShowDesignerPopup(false); // Close the popup
-      console.log("designeeName",designeeName);
-      console.log("designeePhone",designeePhone);
-      console.log("designeeEmail",designeeEmail);
+      console.log("designeeName", designeeName);
+      console.log("designeePhone", designeePhone);
+      console.log("designeeEmail", designeeEmail);
       setDesigneeName(""); // Reset the input fields
       setDesigneePhone("");
       setDesigneeEmail("");
       const token = localStorage.getItem("token");
-      const response = await axios.post(`${API_URL}/api/designee/add`, {designeeName, designeePhone, designeeEmail},
+      const response = await axios.post(`${API_URL}/api/designee/add`, { designeeName, designeePhone, designeeEmail },
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -348,7 +402,7 @@ const MobileSidebar = ({ onFolderSelect }) => {
       );
       console.log(response);
       alert("Designee added successfully!");
-      
+
       setShowDesignerPopup(false);
     } else {
       alert("Please fill out all fields before inviting a designee.");
@@ -386,7 +440,7 @@ const MobileSidebar = ({ onFolderSelect }) => {
 
 
 
-  
+
   return (
     <>
       {/* Menu Icon to Open Sidebar */}
@@ -699,7 +753,7 @@ const MobileSidebar = ({ onFolderSelect }) => {
                           <button
                             className="text-red-500 ml-2"
                             onClick={(e) => {
-                      
+
                               e.preventDefault();
                               e.stopPropagation();
                               setIsOpen(true);
@@ -726,7 +780,7 @@ const MobileSidebar = ({ onFolderSelect }) => {
                           </span>
                           <button
                             onClick={(e) => {
-                        
+
                               e.preventDefault();
                               e.stopPropagation();
                               setIsOpen(true);
@@ -967,16 +1021,18 @@ const MobileSidebar = ({ onFolderSelect }) => {
             )
           )}
         </ul> */}
-    <h2 className="font-semibold text-[#667085] text-xs mt-2">
+<h2 className="font-semibold text-[#667085] text-xs mt-2">
         {designers.length} Designees
         {designers.length > 3 && (
-          <button
-            onClick={() => {
-              setViewAllDesigners(!viewAllDesigners);
-            }}
+          <button 
+            // onClick={() => {
+            //   setViewAllDesigners(!viewAllDesigners);
+            // }}
             className="text-blue-500 text-xs float-right"
+            onClick={handledesigneedashboard}
           >
-            {viewAllDesigners ? "View Less" : "View All"}
+            {/* {viewAllDesigners ? "View Less" : "View All"} */}
+            View All
           </button>
         )}
       </h2>
@@ -985,42 +1041,99 @@ const MobileSidebar = ({ onFolderSelect }) => {
           <li
             key={index}
             className="text-gray-700 py-1 hover:text-blue-500 flex items-center cursor-pointer"
+            onClick={handledesigneedashboard}
           >
             <User className="mr-2" />
-            {designer.name} {/* Display designer's name */}
+            {designer.name} 
           </li>
         ))}
       </ul>
-    <>
-    <button
-          onClick={() => {
-            if (isMembershipActive) {
-              setOpenMenuId(null);
-              setShowDesignerPopup(true);
-            } else {
-              setOpenMenuId(null);
-              setDeletebutton2(true);
-            }
-          }}
-          className="flex items-center w-full bg-gray-200 p-1 text-black !mt-1 !mb-3 rounded-md justify-center border text-xs"
-        >
-          <Plus className="mr-2 w-5 h-5" />
-          Add Designer
-        </button> 
 
-        {/* <DesignerPopup
-        isVisible={showDesignerPopup}
-        onClose={() => setShowDesignerPopup(false)}
-        designeeName={designeeName}
-        setDesigneeName={setDesigneeName}
-        designeePhone={designeePhone}
-        setDesigneePhone={setDesigneePhone}
-        designeeEmail={designeeEmail}
-        setDesigneeEmail={setDesigneeEmail}
-        handleAddDesignee={handleAddDesignee}
-      /> */}
-        </>
-        {/* {showDesignerPopup && (
+          {/* <button
+            onClick={() => {
+              if (isMembershipActive) {
+                setOpenMenuId(null);
+                setShowDesignerPopup(true);
+              } else {
+                setOpenMenuId(null);
+                setDeletebutton2(true);
+              }
+            }}
+            className="flex items-center w-full bg-gray-200 p-1 text-black !mt-1 !mb-3 rounded-md justify-center border text-xs"
+          >
+            <Plus className="mr-2 w-5 h-5" />
+            Add Designer
+          </button> */}
+ <button
+             onClick={() => usePopupStore.getState().openPopup()}
+                className="flex items-center w-full bg-gray-200 py-1 text-black rounded-md mt-1 justify-center border"
+              >
+                <Plus className="mr-2" />
+                Add Designee
+              </button>
+        
+
+
+          {/* {showDesignerPopup && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-gray-800 bg-opacity-50">
+              <div className="bg-white p-6 rounded-lg shadow-lg w-96">
+                <div className="flex justify-between items-center border-b pb-3">
+                  <h3 className="text-lg font-semibold">Add Designee</h3>
+                  <button
+                    onClick={() => setShowDesignerPopup(false)}
+                    className="text-gray-500"
+                  >
+                    ✕
+                  </button>
+                </div>
+                <div className="mt-4">
+                  <div className="flex items-center justify-center mb-4">
+                    <div className="w-24 h-24 rounded-full border-dashed border-2 flex items-center justify-center text-gray-500">
+                      <Camera className="h-4 w-6" />
+                    </div>
+                  </div>
+                  <label className="block mb-2 text-sm font-medium">
+                    Enter Designee Name
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="Designee Name"
+                    value={designeeName}
+                    onChange={(e) => setDesigneeName(e.target.value)}
+                    className="border p-2 rounded w-full mb-3"
+                  />
+                  <label className="block mb-2 text-sm font-medium">
+                    Enter Designee Phone Number
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="Designee Phone Number"
+                    value={designeePhone}
+                    onChange={(e) => setDesigneePhone(e.target.value)}
+                    className="border p-2 rounded w-full mb-3"
+                  />
+                  <label className="block mb-2 text-sm font-medium">
+                    Enter Designee Email
+                  </label>
+                  <input
+                    type="email"
+                    placeholder="Designee Email"
+                    value={designeeEmail}
+                    onChange={(e) => setDesigneeEmail(e.target.value)}
+                    className="border p-2 rounded w-full mb-4"
+                  />
+                </div>
+                <button
+                  onClick={handleAddDesignee}
+                  className="w-full bg-blue-500 text-white py-2 rounded-md hover:bg-blue-600"
+                >
+                  Invite to Cumulus
+                </button>
+              </div>
+            </div>
+          )} */}
+
+          {/* {showDesignerPopup && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-gray-800 bg-opacity-50">
             <div className="bg-white p-6 rounded-lg shadow-lg w-96">
               <div className="flex justify-between items-center border-b pb-3">
@@ -1107,7 +1220,7 @@ const MobileSidebar = ({ onFolderSelect }) => {
           </div>
 
           {/* Transfer */}
-          <div>
+          {/* <div>
             <h2 className="font-semibold mt-1 text-sm text-[#667085]">Transfer</h2>
             <div className="text-[#434A60] py-1 pl-2 hover:text-blue-500 cursor-pointer flex"
               onClick={() => {
@@ -1119,14 +1232,35 @@ const MobileSidebar = ({ onFolderSelect }) => {
               <img src={aftertlife} alt="" className="h-6" />
               <span className="ml-3">Sharing After Death</span>
             </div>
-          </div>
+          </div> */}
 
           {/* Shared Files */}
 
           <div className="">
-            <h2 className="font-semibold text-[#667085] text-sm mt-2">Shared file</h2>
+            <h2 className="font-semibold text-[#667085] text-sm mt-2">Transfer</h2>
             <NavLink
               to="/SharedFiles"
+              className={({ isActive }) =>
+                `flex mb-2 cursor-pointer p-2 rounded  ${isActive ? "bg-blue-500 text-white" : "text-[#434A60]"
+                }`
+              }
+            >
+              <span className="flex "
+                onClick={() => {
+                  setIsOpen(false);
+                  setOpenMenuId(null);
+                }}
+              >
+                <Users className="" />
+                <h2 className="ml-3">After Life Access</h2>
+              </span>
+
+            </NavLink>
+          </div>
+          <div className="">
+            <h2 className="font-semibold text-[#667085] text-sm mt-2">Shared file</h2>
+            <NavLink
+                   to="/afterlifeaccess"
               className={({ isActive }) =>
                 `flex mb-2 cursor-pointer p-2 rounded  ${isActive ? "bg-blue-500 text-white" : "text-[#434A60]"
                 }`
@@ -1144,7 +1278,6 @@ const MobileSidebar = ({ onFolderSelect }) => {
 
             </NavLink>
           </div>
-
           <div className="flex-grow"></div>
           <div className="mt-auto ">
             <button className="flex w-full  p-2 text-[#667085]  rounded-md "

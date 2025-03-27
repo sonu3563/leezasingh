@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Facebook, Twitter, Instagram, Linkedin, X } from 'lucide-react';
-import logo2 from"../Assets/logo2.png";
+import logo2 from"../../assest/landingassests/objects.png";
 import { Link as ScrollLink } from "react-scroll";
 
 function Footer() {

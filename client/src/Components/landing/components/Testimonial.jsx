@@ -130,9 +130,9 @@ function Testimonial() {
 
     return (
         <>
-            <div className='w-full max-w-9xl bg-[#2E2E2E] py-4 '
+            <div className='w-full max-w-9xl bg-[#0C3891] py-4 '
                 style={{
-                    backgroundImage: `url(${frame})`,
+                    // backgroundImage: `url(${frame})`,
                     backgroundSize: "cover",
 
                     backgroundPosition: "center",
@@ -152,7 +152,7 @@ function Testimonial() {
                                 key={category}
                                 className={`px-4 py-2 rounded ${activeCategory === category
                                     ? "bg-blue-500 text-white"
-                                    : "bg-gray-200 text-gray-700"
+                                    : "bg-white text-black"
                                     } `}
                                 onClick={() => {
                                     setActiveCategory(category);
@@ -188,7 +188,7 @@ function Testimonial() {
                                     <p className="text-white  font-serif mb-4">
                                         {testimonials[activeCategory][currentIndex].review}
                                     </p>
-                                    <div className='inline-flex p-2 pb-1 px-8 rounded-xl mt-4 justify-center bg-gray-700 items-center'>
+                                    <div className='inline-flex p-2 pb-1 px-8 rounded-xl mt-4 justify-center bg-white items-center'>
                                         <img
                                             src={testimonials[activeCategory][currentIndex].image}
                                             alt={testimonials[activeCategory][currentIndex].name}
@@ -196,7 +196,7 @@ function Testimonial() {
                                         />
                                         <div className='ml-1 items-centr'>
 
-                                            <p className="text-white text-md ml-2 font-semibold">
+                                            <p className="text-black text-md ml-2 font-semibold">
                                                 {testimonials[activeCategory][currentIndex].name}
                                             </p>
 

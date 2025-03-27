@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import { Menu, MousePointerClickIcon, X } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-import logo from "../Assets/logo.png";
+// import { motion } from "framer-motion";
+// import logo from "../Assets/logo.png";
 import bgimage from "../Assets/desktopbg2.png";
 import heroimage from "../Assets/heroimg.png";
 import Box1 from "../Assets/Box1.png";
@@ -12,18 +13,22 @@ import box2 from "../Assets/Box-2.png"
 import box3 from "../Assets/Box -3.png"
 import Box3 from "../Assets/Box3.png";
 import Box4 from "../Assets/Box4.png";
+
 import reviews from "../Assets/Reviews.png"
-import Subscription from "./Subscription";
+import Recentpost from "./Recentpost";
 import Work from "./Work";
 import Testimonial from "./Testimonial";
 import Faq from "./Faq";
 import Assistance from "./Assistance";
 import Footer from "./Footer";
-import Benifit from "./Benifit";
+import Features from "./Features";
+import Creatives from "./Creatives";   //Company
+import Company from "./Company"; 
 import { Link as ScrollLink } from "react-scroll";
 import { Link, useNavigate } from "react-router-dom";
-
-
+import backgroundimage from '../../assest/landingassests/Rectangle 2.jpg'
+import sideimage from '../../assest/landingassests/Group.png'
+import logo from '../../assest/landingassests/objects.png'
 function Hero() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const navigate = useNavigate();
@@ -40,8 +45,8 @@ function Hero() {
   return (
     <>
     
-      <nav className="fixed top-0 left-0 w-full text-white shadow z-50 bg-[#2e2e2e]">
-        <div className=" w-full mx-auto md:px-1 py-3 flex px-1 sm:px-2 lg:px-10 justify-between md:justify-between lg:justify-between  items-center">
+      <nav className="fixed top-0 left-0 w-full text-black shadow z-50 bg-[#ffff]">
+      <div className="container mx-auto flex items-center justify-between px-4 py-3">
           {/* Logo */}
           <div>
             <ScrollLink
@@ -56,47 +61,47 @@ function Hero() {
           </div>
 
           {/* Desktop Navigation */}
-          <div className="hidden md:flex md:space-x-3 lg:space-x-8">
+          <div className="hidden md:flex md:space-x-3 lg:space-x-8 items-center">
             <ScrollLink
-              to="features"
+              to="Recentpost"
               smooth={true}
               duration={500}
               offset={-50}
-              className="hover:underline cursor-pointer text-lg"
+              className="hover:text-blue-500"
             >
-              Features
+              Upcoming Events
             </ScrollLink>
             <ScrollLink
-              to="subscription"
+              to="Recentpost"
               smooth={true}
               duration={500}
               offset={-50}
-              className="hover:underline cursor-pointer text-lg"
+              className="hover:text-blue-500"
             >
-            Pricing
+            All Jobs 
             </ScrollLink>
             <ScrollLink
               to="work"
               smooth={true}
               duration={500}
               offset={-50}
-              className="hover:underline cursor-pointer text-lg"
+              className="hover:text-blue-500"
             >
-              How it Works
+           Join as a Companies
             </ScrollLink>
             <ScrollLink
               to="testimonial"
               smooth={true}
               duration={500}
               offset={-50}
-              className="hover:underline cursor-pointer text-lg"
+              className="hover:text-blue-500"
             >
-              Testimonials
+              Join as a Creatives
             </ScrollLink>
 
             <ScrollLink
               to="subscription"
-              className="cursor-pointer text-lg p-1 px-2 border text-blue-600 bg-white rounded-lg hover:font-semibold"
+              className="cursor-pointer text-lg p-1 px-2 border text-white bg-[#0C3891] rounded-lg "
               smooth={true}
               duration={500}
               offset={-50}
@@ -136,7 +141,7 @@ function Hero() {
                 offset={-50}
                 className="hover:bg-gray-700 cursor-pointer block px-4 py-2"
               >
-                Features
+                Upcoming Events
               </ScrollLink>
               <ScrollLink
                 to="subscription"
@@ -146,7 +151,7 @@ function Hero() {
                 className="block px-4 py-2 hover:bg-gray-700 cursor-pointer"
                 onClick={() => setIsMobileMenuOpen(false)}
               >
-                Pricing
+               All Jobs 
               </ScrollLink>
               <ScrollLink
                 to="work"
@@ -156,7 +161,7 @@ function Hero() {
                 className="block px-4 py-2 hover:bg-gray-700 cursor-pointer"
                 onClick={() => setIsMobileMenuOpen(false)}
               >
-                How it Works
+                Join as a Companies
               </ScrollLink>
               <ScrollLink
                 to="testimonial"
@@ -166,7 +171,7 @@ function Hero() {
                 className="block px-4 py-2 hover:bg-gray-700 cursor-pointer"
                 onClick={() => setIsMobileMenuOpen(false)}
               >
-                Testimonials
+                Join as a Creatives
               </ScrollLink>
 
               <div className="flex items-end p-2">
@@ -187,15 +192,97 @@ function Hero() {
 
 
 
+
+
+      <div className="relative w-full h-screen" id="home">
+      {/* Background Image */}
+      <img
+        src={backgroundimage}
+        alt="Background"
+        className="absolute inset-0 w-full h-full object-cover"
+      />
+
+      {/* Content Overlay */}
+      <div className="absolute inset-0 flex items-center justify-center">
+        <div className="container mx-auto px-6 flex flex-col-reverse lg:flex-row items-center gap-12 w-full">
+          {/* Text Section */}
+          <div className="lg:w-1/2 flex flex-col justify-center text-center lg:text-left space-y-6">
+            <motion.h1
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.8 }}
+              className="text-4xl lg:text-5xl font-extrabold text-white leading-tight"
+            >
+              Elevate Your Creative Journey at Cannes and Martha’s Vineyard
+            </motion.h1>
+
+            <motion.p
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 1, delay: 0.2 }}
+              className="text-gray-200 text-lg"
+            >
+              Join a global platform connecting talent and companies through
+              exclusive events, curated opportunities, and personalized services.
+            </motion.p>
+
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 1, delay: 0.4 }}
+              className="flex flex-col md:flex-row items-center md:items-start md:space-x-4 mt-6"
+            >
+              <a
+                href="#about"
+                className="bg-white text-[#0C3891] px-6 py-3 rounded-lg font-semibold transition transform hover:scale-110 hover:shadow-xl"
+              >
+                Join the Creative Community <i className="bi bi-arrow-right ml-2" />
+              </a>
+            </motion.div>
+          </div>
+
+          {/* Floating Sidebar Image Section */}
+          <motion.div
+  initial={{ opacity: 0, y: 20 }}
+  animate={{ opacity: 1, y: [0, -10, 0] }}
+  transition={{ duration: 1, delay: 0.6, repeat: Infinity, repeatType: "reverse", ease: "easeInOut" }}
+  className="lg:w-1/2 flex justify-center"
+>
+  <img
+    src={sideimage}
+    className="w-full max-w-lg lg:max-w-2xl"
+    alt="Hero Image"
+  />
+</motion.div>
+
+        </div>
+      </div>
+    </div>
+
+
+
+
+
+
+
      
 
 
 
-      <div id="subscription">
-        <Subscription />
+      <div id="Recentpost">
+        <Recentpost />
       </div>
-      <div id="benifit">
-        <Benifit />
+      <div id="Features">
+        <Features />
+      </div>
+      {/* <div id="Company">
+        <Company />
+      </div> */}
+      <div id="Creatives">
+        <Creatives />
+      </div>
+      <div id="Company">
+        <Company />
       </div>
       <div id="work">
         <Work />
@@ -205,13 +292,13 @@ function Hero() {
         <Testimonial />
       </div>
 
-      <div id="faq">
+      {/* <div id="faq">
         <Faq />
-      </div>
+      </div> */}
 
-      <div id="assistance">
+      {/* <div id="assistance">
         <Assistance />
-      </div>
+      </div> */}
 
       <div id="footer">
         <Footer />

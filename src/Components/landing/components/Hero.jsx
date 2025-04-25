@@ -57,6 +57,12 @@ function Hero() {
   }, []);
 
 
+  const eventLinks = {
+    "Cannes": "/EventHome",
+    "Martha’s Vineyard": "/Martha",
+    "Art Basel Miami": "/Artbasel",
+  };
+
   return (
     <>
       <nav className="fixed top-0 left-0 w-full text-black shadow z-50 bg-white">
@@ -95,16 +101,18 @@ function Hero() {
             <div 
             ref={dropdownRef}
             className="absolute top-full left-0 mt-3 w-64 bg-white border border-gray-200 shadow-lg rounded-xl z-50 animate-fadeIn">
-              <ul className="p-4 space-y-2 text-gray-800 font-medium">
-                {["Cannes", "Martha’s Vineyard", "Art Basel Miami"].map((event) => (
-                  <li
-                    key={event}
-                    className="px-3 py-2 rounded-md hover:bg-blue-50 hover:text-blue-600 transition-colors cursor-pointer"
-                  >
-                    {event}
-                  </li>
-                ))}
-              </ul>
+           <ul className="p-4 space-y-2 text-gray-800 font-medium">
+  {Object.entries(eventLinks).map(([event, link]) => (
+    <li key={event}>
+      <Link
+        to={link}
+        className="block px-3 py-2 rounded-md hover:bg-blue-50 hover:text-blue-600 transition-colors"
+      >
+        {event}
+      </Link>
+    </li>
+  ))}
+</ul>
             </div>
           )}
         </div>
@@ -120,7 +128,7 @@ function Hero() {
           Opportunities
         </ScrollLink>
         <ScrollLink
-          to="work"
+          to="Company"
           smooth={true}
           duration={500}
           offset={-50}
@@ -129,7 +137,7 @@ function Hero() {
           Join as a Companies
         </ScrollLink>
         <ScrollLink
-          to="testimonial"
+          to="work"
           smooth={true}
           duration={500}
           offset={-50}
@@ -193,7 +201,7 @@ function Hero() {
                 Opportunities
               </ScrollLink>
               <ScrollLink
-                to="work"
+                to="Company"
                 smooth={true}
                 duration={900}
                 offset={-50}
@@ -203,7 +211,7 @@ function Hero() {
                 Join as a Companies
               </ScrollLink>
               <ScrollLink
-                to="testimonial"
+                to="work"
                 smooth={true}
                 duration={900}
                 offset={-50}

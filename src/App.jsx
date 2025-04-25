@@ -7,6 +7,11 @@ import Hero from "./Components/landing/components/Hero";
 import Updatepassword from "./Components/Pages/Auth/updatepassword/updatepassword";
 import "slick-carousel/slick/slick.css";
 import "slick-carousel/slick/slick-theme.css";
+import Events from "./Components/subpages/Events";
+import EventsPage from "./Components/subpages/specificevents/EventsPage"
+import EventHome from "./Components/subpages/specificevents/EventHome";
+import Martha from "./Components/subpages/specificevents/Marth/Martha";
+import Artbasel from "./Components/subpages/specificevents/artbasel/Artbasel";
 // import AppRoutes from "./components/Routes";
 // import { ThemeProvider } from "@material-native-ui/theme-provider";
 
@@ -20,6 +25,11 @@ function App() {
             <Route path="/signup" element={<SignIn />} />
             <Route path="/Updatepassword" element={<Updatepassword />} />
             <Route path="/" element={<Hero />} />
+            <Route path="/Events" element={<Events />} />
+            {/* <Route path="/EventsPage" element={<EventsPage />} /> */}
+            <Route path="/EventHome" element={<EventHome />} />
+            <Route path="/Martha" element={<Martha />} />
+            <Route path="/Artbasel" element={<Artbasel />} />
             {/* <Route path="/*" element={<AppRoutes />} /> */}
           </Routes>
         </AuthProvider>

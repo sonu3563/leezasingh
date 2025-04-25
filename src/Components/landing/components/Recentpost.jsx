@@ -14,7 +14,7 @@ const Recentpost = () => {
       title: "40 Events",
       author: "Cannes",
       category: "Politics",
-      link: "",
+      link: "/EventHome",
     },
     {
       id: 2,
@@ -23,7 +23,7 @@ const Recentpost = () => {
       title: "20 Events",
       author: "Martha’s Vineyar",
       category: "Sports",
-      link: "",
+      link: "/Martha",
     },
     {
       id: 3,
@@ -32,7 +32,7 @@ const Recentpost = () => {
       title: "25 Events",
       author: "Miami Art Basel",
       category: "Technology",
-      link: "",
+      link: "/Artbasel",
     },
   ];
   

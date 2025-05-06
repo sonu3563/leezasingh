@@ -8,6 +8,9 @@ import testimonialquatation from "../../assest/landingassests/categeories/testim
 import Star from "../../assest/landingassests/categeories/star.png";
 import { motion } from "framer-motion";
 import {fadeIn} from '../../../variants';
+import "slick-carousel/slick/slick.css"; 
+import "slick-carousel/slick/slick-theme.css";
+
 
 const testimonials = [
   {

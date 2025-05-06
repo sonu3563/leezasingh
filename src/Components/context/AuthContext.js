@@ -23,32 +23,53 @@ export const AuthProvider = ({ children }) => {
     setIsLoading(true);
     setAuthMessage(null);
     try {
-      const response = await fetch(`${API_URL}/api/login`, {
+      const response = await fetch(`${API_URL}/auth/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password }),
       });
-      if (!response.ok) throw new Error("Login failed , Please check your email or password");
+      if (!response.ok) throw new Error("Login failed, Please check your email or password");
+      
       const data = await response.json();
-      console.log("login response",data)
-      if (data.success) {
-        const user = data.data.user;
-        const token = data.data.token;
+      console.log("login response", data);
+      
+      if (data.message === "Login successful") {
+        const user = data.user;
+        const token = data.token;
+        
+        // Directly extracting the role and formatting it for storage
         const formattedRole = user?.role?.name?.trim().toLowerCase().replace(/\s+/g, "") || "norole";
+        
+        // Storing the data in localStorage
         localStorage.setItem("userToken", token);
+        localStorage.setItem("role", user.role.name); // Saving the role as it is in the response
         localStorage.setItem("user_id", user.id);
-        localStorage.setItem("user_name", formattedRole);
+        localStorage.setItem("user_name", user.username); // Saving username as well
+        localStorage.setItem("user_role", formattedRole); // Saving the formatted role
         localStorage.setItem("userData", JSON.stringify(user));
+        
+        // Updating the state
         setUser(user);
-        console.log(user);
-        console.log("roles", formattedRole);
-        console.log(localStorage.getItem("user_name"));
         setAuthMessage("Login successful! ✅");
-        console.log("this is user_id",user.id);
-        const userRole = user.roles?.[0]?.name?.trim()?.toLowerCase()?.replace(/\s+/g, "");
+  
+        console.log("User Role:", user.role.name);
+        console.log("Stored Role in LocalStorage:", localStorage.getItem("user_role"));
+        
+        // Navigate to the role-specific dashboard
+        // navigate(`/${formattedRole}/dashboard`);
+
+        const userRole = formattedRole.trim()?.toLowerCase()?.replace(/\s+/g, "");
+
         console.log("this is user_id",userRole);
-        navigate(`/${formattedRole}/dashboard`);
-     
+        localStorage.setItem("user_role", userRole); // Saving the formatted role
+if(userRole==="creator"){
+        navigate(`/${formattedRole}/All-jobs`);
+}
+else{
+  navigate(`/${formattedRole}/profile`);
+}
+
+
       } else {
         throw new Error(data.message || "Login failed ❌");
       }
@@ -58,63 +79,69 @@ export const AuthProvider = ({ children }) => {
       setIsLoading(false);
     }
   };
+  
 
-  const signup = async (username, firstName, lastName, email, role, phoneNumber, navigate) => {
+  const signup = async (username, firstname, lastname, email, role, number, password, categories, navigate) => {
     setIsLoading(true);
     setAuthMessage(null);
-
+  
     const requestBody = {
-        username,
-        firstName,
-        lastName,
-        email,
-        phoneNumber,  // Ensure it's correctly named
-        role
+      username,
+      firstName: firstname,
+      lastName: lastname,
+      phone: number,
+      email,
+      role,
+      password,
+      subCategories: categories,
     };
-
-    console.log("Request body:", requestBody);  // Debug request payload
-
+  
     try {
-        const response = await fetch(`${API_URL}/api/signup`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(requestBody),
-        });
+      const response = await fetch(`${API_URL}/auth/signup`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(requestBody),
+      });
+  
+      const data = await response.json();
+      console.log("Signup Response:", data);
+  
+      if (!response.ok) {
+        throw new Error(data.message || "Signup failed. Please try again.");
+      }
+  
+      const { token, user, message } = data;
+  
+      if (token && user) {
+        // console.log("1");
 
-        const data = await response.json();
-        console.log("responseeee",data);
-        if (!response.ok) {
-            throw new Error(data.message || "Signup failed. Please try again.");
-        }
+        const formattedRole = user.role?.trim().toLowerCase().replace(/\s+/g, "") || "norole";
+  
+        localStorage.setItem("userToken", token);
+        localStorage.setItem("user_id", user.id);
+        localStorage.setItem("user_name", formattedRole);
+        localStorage.setItem("role", user.role.name); // Saving the role as it is in the response
+        localStorage.setItem("userData", JSON.stringify(user));
+  
+        console.log("User Role:", formattedRole);
+        console.log("Stored Role in LocalStorage:", localStorage.getItem("user_role"));
+        
 
-        console.log("Signup response:", data);
 
-        if (data.user && data.token) {
-            const user = data.user;
-            const token = data.token;
-            const formattedRole = user.role?.trim().toLowerCase().replace(/\s+/g, "") || "norole";
-
-            localStorage.setItem("userToken", token);
-            localStorage.setItem("user_id", user.id);
-            localStorage.setItem("user_name", formattedRole);
-            localStorage.setItem("userData", JSON.stringify(user));
-
-            setUser(user);
-            setAuthMessage("Signup successful! ✅ Check your email for login details.");
-            console.log("User:", user);
-            console.log("Role:", formattedRole);
-
-            navigate(`/${formattedRole}/dashboard`);
-        } else {
-            throw new Error("Unexpected response format from server.");
-        }
-
+        setUser(user);
+        setAuthMessage(message || "Signup successful! ✅");
+  
+        navigate(`/${formattedRole}/dashboard`);
+      } else {
+        throw new Error("Invalid signup response format.");
+      }
     } catch (error) {
-        setAuthMessage(error.message || "Something went wrong! ❌");
+      setAuthMessage(error.message || "Something went wrong! ❌");
     } finally {
-        setIsLoading(false);
+      setIsLoading(false);
     }
-};
+  };
+  
 
 
 

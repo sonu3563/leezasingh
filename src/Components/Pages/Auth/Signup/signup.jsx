@@ -1,36 +1,61 @@
-import { useState } from "react";
+import { useState,useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Loader2 } from "lucide-react";
 import { useAuth } from "../../../context/AuthContext";
 import leftimage from "../../../assest/landingassests/categeories/signupright.jpg"
-
+import { useRoles } from "../../../context/Rolecontext";
 const SignUp = () => {
   const navigate = useNavigate();
   const { signup, isLoading } = useAuth();
-
+  const { category } = useRoles();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [firstname, setFirstname] = useState("");
   const [lastname, setLastname] = useState("");
   const [number, setNumber] = useState("");
   const [role, setRole] = useState("");
+  const [roleId, setRoleId] = useState("");
+  const [categories, setCategories] = useState("");
   const [username, setUsername] = useState("");
   const [error, setError] = useState("");
+  const [selectedSubcategories, setSelectedSubcategories] = useState([]);
+  const selectedRole = category.find(cat => cat.roleName === (role === 'Companies' ? 'Join as a Company' : 'Join as a Creative'));
 
-  const handleSignUp = (e) => {
-    e.preventDefault();
 
-    console.log("Signing up with:", {
-      username,
-      firstname,
-      lastname,
-      email,
-      role,
-      number,
-    });
+    const handleSignUp = (e) => {
+      e.preventDefault();
+    
+      const payload = {
+        username,
+        firstname,
+        lastname,
+        email,
+        role, 
+        number,
+        password,
+        categories: selectedRole?.subCategories?.length > 0 ? selectedSubcategories : []
+      };
+    
+      console.log("Signing up with:", payload);
+    
+      signup(
+        username,
+        firstname,
+        lastname,
+        email,
+        role,
+        number,
+        password,
+        selectedSubcategories,
+        navigate
+      );
+    };
+    
 
-    signup(username, firstname, lastname, email, role, number, navigate);
-  };
+    useEffect(() => {
+      // Clear subcategories when role changes
+      setSelectedSubcategories([]);
+    }, [role]);
 
   return (
     <div className="flex flex-col md:flex-row  h-screen text-white">
@@ -83,6 +108,7 @@ const SignUp = () => {
                   className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring focus:ring-[#0C3891]"
                   placeholder="Phone Number"
                   value={number}
+                  maxLength={10}
                   onChange={(e) => setNumber(e.target.value)}
                   required
                 />
@@ -98,19 +124,63 @@ const SignUp = () => {
                 />
               </div>
               <div className="w-full">
-                <select
-                  value={role}
-                  onChange={(e) => setRole(e.target.value)}
-                  className="w-full px-3 py-2 border rounded-md bg-white focus:outline-none focus:ring focus:ring-[#0C3891]"
+                <input
+                  type="pasword"
+                  className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring focus:ring-[#0C3891]"
+                  placeholder="Password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
                   required
-                >
-                  <option value="">Select Role</option>
-                  <option value="Companies">Join as a Companies</option>
-                  <option value="Creativeshr">Join as a Creatives</option>
-                  {/* <option value="employee">Employee</option> */}
-                </select>
+                />
               </div>
+              <div className="w-full">
+  <select
+    value={role}
+    onChange={(e) => setRole(e.target.value)}
+    className="w-full px-3 py-2 border rounded-md bg-white focus:outline-none focus:ring focus:ring-[#0C3891]"
+    required
+  >
+    <option value="">Select Role</option>
+    {category.map((roleOption) => (
+      <option key={roleOption._id} value={roleOption._id}>
+        {roleOption.roleName}
+      </option>
+    ))}
+  </select>
+</div>
+
+
+
+
+
             </div>
+            {category.find((r) => r._id === role)?.subCategories?.length > 0 && (
+  <div className="w-full">
+    <label className="block mb-2 font-medium">Select Categories</label>
+    <div className="grid grid-cols-2 gap-2">
+      {category
+        .find((r) => r._id === role)
+        .subCategories.map((sub) => (
+          <label key={sub._id} className="flex items-center gap-2">
+            <input
+              type="checkbox"
+              value={sub._id}
+              checked={selectedSubcategories.includes(sub._id)}
+              onChange={(e) => {
+                const { checked, value } = e.target;
+                setSelectedSubcategories((prev) =>
+                  checked ? [...prev, value] : prev.filter((id) => id !== value)
+                );
+              }}
+            />
+            {sub.name}
+          </label>
+        ))}
+    </div>
+  </div>
+)}
+
+
 
             {error && <p className="text-red-500 text-sm">{error}</p>}
 

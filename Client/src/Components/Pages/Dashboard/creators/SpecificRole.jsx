@@ -80,7 +80,7 @@ const SpecificRole = () => {
                     <div className="relative flex-1">
                       <input
                         type="text"
-                        className="w-full p-3 border border-gray-300 rounded-lg pr-10 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                        className="w-full px-4 py-2 border border-gray-300 rounded-lg pr-10 focus:outline-none focus:ring-2 focus:ring-indigo-500"
                         placeholder={`Search ${searchOption || 'by filter'}`}
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
@@ -94,29 +94,28 @@ const SpecificRole = () => {
                     </div>
             
                     <div className="flex items-center space-x-4">
-  <select
-    className="p-4 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all duration-300"
-    value={searchOption}
-    onChange={(e) => setSearchOption(e.target.value)}
-  >
-    <option value="">Filter By</option>
-    <option value="jobTitle">Job Title</option>
-    <option value="location">Location</option>
-    <option value="status">Status</option>
-    {/* <option value="subCategories.name">Type</option> */}
-  </select>
+                      <select
+                        className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all duration-300"
+                        value={searchOption}
+                        onChange={(e) => setSearchOption(e.target.value)}
+                      >
+                        <option value="">Filter By</option>
+                        <option value="jobTitle">Job Title</option>
+                        <option value="location">Location</option>
+                        <option value="status">Status</option>
+                      </select>
 
-  <button
-    onClick={handleClearFilters}
-    className="bg-red-500 text-white py-2 px-6 rounded-full hover:bg-red-600 transition-all duration-300"
-  >
-    Clear
-  </button>
-</div>
+                      <button
+                        onClick={handleClearFilters}
+                        className="bg-red-600 text-white py-2 px-6 rounded-lg hover:bg-red-700 transition-all duration-300"
+                      >
+                        Clear
+                      </button>
+                    </div>
                   </div>
                 </div>
                   </div>
-</div>
+  </div>
 
     {/* Job Cards */}
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mt-4 max-h-[75vh] overflow-y-auto scrollbar-hide">
@@ -238,7 +237,7 @@ const SpecificRole = () => {
     {/* Modal for Viewing Job Details */}
     {isModalOpen && selectedJob && (
   <div className="fixed inset-0 bg-black/30 flex items-center justify-center z-50 px-4">
-    <div className="bg-white rounded-xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden">
+    <div className="bg-white rounded-xl shadow-2xl w-full max-w-4xl max-h-[100vh] overflow-hidden">
       
       {/* Header */}
       <div className="flex justify-between items-start p-6 border-b">
@@ -286,8 +285,8 @@ const SpecificRole = () => {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4 text-sm text-gray-700">
             <div>
               <p><strong>Website:</strong> {selectedJob.company?.website?.join(', ')}</p>
-              <p><strong>Email:</strong> {selectedJob.company?.supportEmail}</p>
-              <p><strong>Phone:</strong> {selectedJob.company?.supportPhoneNumber}</p>
+              <p><strong>Email:</strong> <a className='text-blue-600 underline' href={`mailto:${selectedJob.company?.supportEmail}`}>{selectedJob.company?.supportEmail}</a></p>
+              <p><strong>Phone:</strong> <a className='text-blue-600 underline' href={`tel:${selectedJob.company?.supportPhoneNumber}`}>{selectedJob.company?.supportPhoneNumber}</a></p>
             </div>
             <div>
               <p><strong>Established:</strong> {new Date(selectedJob.company?.yearEstablished).getFullYear()}</p>
@@ -314,7 +313,7 @@ const SpecificRole = () => {
 
       {/* Footer */}
       <div className="flex justify-between items-center p-6 border-t">
-        <p className="text-sm text-gray-500">
+        <p className="text-sm text-black ">
           Posted on {new Date(selectedJob.createdAt).toLocaleDateString()}
         </p>
         <div className="flex gap-3">

@@ -88,13 +88,16 @@ const userRole = localStorage.getItem("user_role") || "UNKNOWN";
   const [isOpen, setIsOpen] = useState(false);
   return (
     <>
-    {/* Hamburger Button for Mobile */}
-    <button
-  className="fixed top-4 left-4 z-20 p-2 bg-white rounded-full shadow-xl xl:hidden"
-  onClick={toggleSidebar}
->
-  {isSidebarOpen ? <XMarkIcon className="h-6 w-6 text-gray-700" /> : <Bars3Icon className="h-6 w-6 text-gray-700" />}
-</button>
+   <button
+      className="fixed top-4 left-4 z-20 p-2 bg-white rounded-full shadow-xl xl:hidden"
+      onClick={toggleSidebar}
+    >
+      {isSidebarOpen ? (
+        <XMarkIcon className="h-6 w-6 text-gray-700" />
+      ) : (
+        <Bars3Icon className="h-6 w-6 text-gray-700" />
+      )}
+    </button>
 
 
     {/* Sidebar Navigation */}

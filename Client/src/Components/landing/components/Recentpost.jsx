@@ -59,7 +59,7 @@ const Recentpost = () => {
             initial="hidden"
             whileInView="show"
             viewport={{ once: false, amount: 0.7 }}
-            className="text-2xl md:text-4xl font-bold text-gray-900"
+            className="text-xl md:text-4xl font-bold text-gray-900"
           >
             Experience the Magic of Iconic Events
           </motion.h2>
@@ -76,15 +76,12 @@ const Recentpost = () => {
         </div>
 
         {/* Slider with 3 cards visible */}
-        <div className="overflow-hidden w-full">
-          <div
-            className="flex w-fit"
-            animate={controls}
-            custom={0}
-          >
-            {[...posts, ...posts].map((post, index) => (
-              <div key={index} className="min-w-[33.3333%] p-2">
-                <div className="relative w-full h-96 rounded-lg overflow-hidden">
+        {/* Responsive Grid Slider */}
+        <div className="w-full overflow-hidden">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {[...posts].map((post, index) => (
+              <div key={index} className="p-2">
+                <div className="relative w-full h-72 md:h-96 rounded-lg overflow-hidden">
                   <img
                     src={post.img}
                     alt={post.author}
@@ -92,7 +89,7 @@ const Recentpost = () => {
                   />
                   <div className="absolute bottom-4 left-4 text-white">
                     <p className="text-sm">{post.title}</p>
-                    <h2 className="text-2xl md:text-4xl font-semibold">{post.author}</h2>
+                    <h2 className="text-xl md:text-lg font-semibold">{post.author}</h2>
                   </div>
                   <a
                     href={post.link}

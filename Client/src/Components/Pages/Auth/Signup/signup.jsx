@@ -8,6 +8,7 @@ import { API_URL } from "../../../utils/Apiconfig";
 import useLoadingStore from '../../../utils/UseLoadingStore';
 import axios from "axios";
 import Alert from "../../../utils/Alert";
+import Select from "react-select";
 const SignUp = () => {
   const navigate = useNavigate();
   const { signup,handleSendOTP } = useAuth();
@@ -40,6 +41,16 @@ const SignUp = () => {
     }, 3000);
   };
 
+  const options = category
+  .filter((roleOption) => roleOption.roleName !== "Admin")
+  .map((roleOption) => ({
+    value: roleOption._id,
+    label: roleOption.roleName,
+  }));
+
+  const handleRoleChange = (selectedOption) => {
+  setRole(selectedOption ? selectedOption.value : "");
+};
  
   const selectedRole = category.find(
     (cat) =>
@@ -214,7 +225,7 @@ const SignUp = () => {
 
 
   return (
-    <div className="flex flex-col md:flex-row  h-screen text-white">
+    <div className="flex flex-col md:flex-row h-screen justify-center text-white">
       {/* Left Section */}
       <div className="w-1/3 h-full hidden lg:flex flex-col justify-center items-center bg-[#0C3891] py-5">
         <h1 className="text-6xl font-bold mb-2">Welcome,</h1>
@@ -224,53 +235,13 @@ const SignUp = () => {
 
       {/* Right Section */}
       <div className="lg:w-2/3 w-full flex items-center justify-center p-4">
-        <div className="bg-white text-black p-8 rounded-lg w-full max-w-2xl shadow-lg">
+        <div className="bg-white text-black p-8 rounded-lg w-full max-w-2xl shadow-xl">
           <form className="space-y-6" onSubmit={handleSignUp}>
             <h2 className="text-3xl font-bold text-center text-[#0C3891]">
               Sign Up
             </h2>
             <div className="flex flex-wrap gap-4">
-              {/* <div className="w-full md:w-[48%]">
-                <input
-                  type="text"
-                  className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring focus:ring-[#0C3891]"
-                  placeholder="User Name"
-                  value={username}
-                  onChange={(e) => setUsername(e.target.value)}
-                  required
-                />
-              </div>
-              <div className="w-full md:w-[48%]">
-                <input
-                  type="text"
-                  className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring focus:ring-[#0C3891]"
-                  placeholder="First Name"
-                  value={firstname}
-                  onChange={(e) => setFirstname(e.target.value)}
-                  required
-                />
-              </div>
-              <div className="w-full md:w-[48%]">
-                <input
-                  type="text"
-                  className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring focus:ring-[#0C3891]"
-                  placeholder="Last Name"
-                  value={lastname}
-                  onChange={(e) => setLastname(e.target.value)}
-                  required
-                />
-              </div> */}
-               
               <div className="w-full">
-                {/* <input
-                  type="email"
-                  className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring focus:ring-[#0C3891]"
-                  placeholder="Email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  required
-                /> */}
-
                 <label htmlFor="email" className="block text-sm font-medium">
                   Email Address
                 </label>
@@ -365,23 +336,23 @@ const SignUp = () => {
                 required
               />
             </div>
-            <div className="w-full">
-              <select
-                value={role}
-                onChange={(e) => setRole(e.target.value)}
-                className="w-full px-3 py-2 border rounded-md bg-white focus:outline-none focus:ring focus:ring-[#0C3891]"
-                required
-              >
-                <option value="">Select Role</option>
-                {category.map((roleOption) =>
-  roleOption.roleName !== "Admin" ? (
-    <option key={roleOption._id} value={roleOption._id}>
-      {roleOption.roleName}
-    </option>
-  ) : null
-)}
-
-              </select>
+           <div className="w-full">
+              <Select
+                options={options}
+                value={options.find((opt) => opt.value === role) || null}
+                onChange={handleRoleChange}
+                placeholder="Select Role"
+                isClearable
+                className="text-sm"
+                styles={{
+                  control: (base, state) => ({
+                    ...base,
+                    borderColor: state.isFocused ? "#0C3891" : "#ccc",
+                    boxShadow: state.isFocused ? "0 0 0 1px #0C3891" : "none",
+                    "&:hover": { borderColor: "#0C3891" },
+                  }),
+                }}
+              />
             </div>
 
             {category.find((r) => r._id === role)?.subCategories?.length >

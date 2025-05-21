@@ -168,7 +168,7 @@ const [selectedStatus, setSelectedStatus] = useState('');
         <div className="relative flex-1">
           <input
             type="text"
-            className="w-full p-3 border border-gray-300 rounded-lg pr-10 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            className="w-full px-4 py-2 border border-gray-300 rounded-lg pr-10 focus:outline-none focus:ring-2 focus:ring-indigo-500"
             placeholder={`Search ${searchOption || 'by filter'}`}
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
@@ -181,9 +181,9 @@ const [selectedStatus, setSelectedStatus] = useState('');
           )}
         </div>
 
-        <div className="flex flex-col md:flex-row gap-4">
+        <div className="flex items-center space-x-6">
           <select
-            className="p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 "
             value={searchOption}
             onChange={(e) => {
               setSearchOption(e.target.value);
@@ -210,7 +210,7 @@ const [selectedStatus, setSelectedStatus] = useState('');
 
           <button
             onClick={handleClearFilters}
-            className="bg-red-500 text-white px-5 py-2 rounded-lg hover:bg-red-600 transition"
+            className="bg-red-600 text-white py-2 px-6 rounded-lg hover:bg-red-700 transition-all duration-300"
           >
             Clear
           </button>
@@ -231,7 +231,7 @@ const [selectedStatus, setSelectedStatus] = useState('');
     <div key={ticket._id} className="relative bg-white border rounded-xl shadow-md p-6 mb-6 w-full">
       
       {/* Status Badge */}
-      <div className="absolute top-4 right-4 flex gap-5">
+      <div className="absolute bottom-4 right-4 flex gap-5">
         <span
           className={`px-3 py-1 text-xs font-semibold rounded-full right-10 ${
             ticket.status === 'Resolved'
@@ -242,18 +242,18 @@ const [selectedStatus, setSelectedStatus] = useState('');
           {ticket.status === 'Resolved' ? 'Resolved' : 'Open'}
         </span>
         {ticket.status === 'Open' && role=== "admin" && (
-  <select
-    value={selectedStatus}
-    onChange={(e) => {
-      handleStatusChange(e, ticket._id); // Pass both event and ticketId
-    }}
-    className="px-3 py-1 text-xs font-semibold rounded-full border border-gray-300 bg-white"
-  >
-    <option value="Open">Open</option>
-    <option value="Resolved">Resolved</option>
-    {/* <option value="Closed">Closed</option> */}
-  </select>
-)}
+          <select
+            value={selectedStatus}
+            onChange={(e) => {
+              handleStatusChange(e, ticket._id); // Pass both event and ticketId
+            }}
+            className="px-2 py-1 text-xs font-semibold rounded-full border border-gray-300 bg-white"
+          >
+            <option value="Open">Open</option>
+            <option value="Resolved">Resolved</option>
+            {/* <option value="Closed">Closed</option> */}
+          </select>
+        )}
 
         {/* View Icon */}
          {ticket.status === 'Resolved'?(
@@ -293,15 +293,6 @@ const [selectedStatus, setSelectedStatus] = useState('');
       </p>
       {/* Ticket Subject */}
       <h3 className="text-lg font-bold text-gray-800 mb-2">{ticket.subject}</h3>
-
-      {/* Ticket Message */}
-      {/* <p className="text-gray-600 text-sm mb-3">
-        <strong className="block text-gray-700 mb-1">Message:</strong>
-        {ticket.messages.length > 0 ? ticket.messages[0].message : 'No message available'}
-      </p> */}
-
-      {/* Created Time */}
-     
     </div>
   ))
 )}

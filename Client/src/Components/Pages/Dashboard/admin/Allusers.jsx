@@ -176,7 +176,7 @@ const [role, setRole] = useState(null);
                    <div className="relative flex-1">
                      <input
                        type="text"
-                       className="w-full p-3 border border-gray-300 rounded-lg pr-10 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                       className="w-full px-4 py-2 border border-gray-300 rounded-lg pr-10 focus:outline-none focus:ring-2 focus:ring-indigo-500"
                        placeholder={`Search ${searchOption || 'by filter'}`}
                        value={searchTerm}
                        onChange={(e) => setSearchTerm(e.target.value)}
@@ -190,100 +190,102 @@ const [role, setRole] = useState(null);
                    </div>
            
                    <div className="flex items-center space-x-6">
-<select
-    className="p-4 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all duration-300 text-lg"
-    value={searchOption}
-    onChange={(e) => setSearchOption(e.target.value)}
->
-    <option value="">Filter By</option>
-    <option value="email">Email</option>
-    <option value="name">Name</option>
-    <option value="role">Role</option>
-</select>
+                      <select
+                          className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all duration-300 text-md"
+                          value={searchOption}
+                          onChange={(e) => setSearchOption(e.target.value)}
+                      >
+                          <option className='text-sm' value="">Filter By</option>
+                          <option className='text-sm' value="email">Email</option>
+                          <option className='text-sm' value="name">Name</option>
+                          <option className='text-sm' value="role">Role</option>
+                      </select>
 
-<button
-    onClick={handleClearFilters}
-    className="bg-red-500 text-white py-2 px-6 rounded-full hover:bg-red-600 transition-all duration-300 text-lg"
->
-    Clear
-</button>
-</div>
+                      <button
+                          onClick={handleClearFilters}
+                          className="bg-red-600 text-white py-2 px-6 rounded-lg hover:bg-red-700 transition-all duration-300"
+                      >Clear
+                      </button>
+                      </div>
                  </div>
                </div>
                  </div>
 
             <div className="overflow-x-auto" style={{ maxHeight: 'calc(100vh - 180px)' }}>
-    <table className="min-w-full bg-white border border-gray-300 rounded-lg shadow-lg">
-        <thead className="sticky top-0 bg-gray-100">
-            <tr className="text-gray-700">
-                <th className="py-3 px-4 text-left">S.no</th>
-                <th className="py-3 px-4 text-left">Name</th>
-                <th className="py-3 px-4 text-left">Email</th>
-                <th className="py-3 px-4 text-left">Role</th>
-                <th className="py-3 px-4 text-center">Actions</th>
-            </tr>
-        </thead>
-        <tbody>
-            {filteredUsers?.map((user, index) => (
-                <tr
-                    key={user.userId}
-                    className="border-t border-gray-200 hover:bg-gray-50 transition-colors duration-150"
-                >
-                    <td className="py-3 px-4">{index + 1}</td>
-                    {user.role === 'Creator' ? (
-    <td className="py-3 px-4">
-        {user.detailedProfile
-            ? `${user.detailedProfile.firstName ?? ''} ${user.detailedProfile.lastName ?? ''}`.trim()
-            : ""}
-    </td>
-) : (
-    <td className="py-3 px-4">
-        {user.detailedProfile?.name ?? ""}
-    </td>
-)}
-
-                    <td className="py-3 px-4">{user.email}</td>
-                    <td className="py-3 px-4">{user.role}</td>
-                    <td className="py-3 px-4 text-center flex justify-center gap-3">
-                    <button
-                            className="text-yellow-500 hover:bg-blue-100 p-2 rounded-lg transition-all"
-                            onClick={() => {
-                                // Setid(user.userId);
-                                navigateToTicketHistory(user.userId)}}
-                        >
-                            <FileClock className="w-5 h-5" />
-                        </button>
-                        <button
-                            className="text-blue-600 hover:bg-blue-100 p-2 rounded-lg transition-all"
-                            onClick={() => {
-                                setUserRole(user.role);
-                                setSelectedUser(user);
-                            }}
-                        >
-                            <Eye className="w-5 h-5" />
-                        </button>
-                        <button
-                            className="text-green-600 hover:bg-green-100 p-2 rounded-lg transition-all"
-                            onClick={() => {console.log('Edit', user.userId)
-                                setIsEditing(true);
-                                setUserRole(user.role);
-                                setSelectedUser(user);
-                            }}
-                        >
-                            <Edit className="w-5 h-5" />
-                        </button>
-                        <button
-                            className="text-red-600 hover:bg-red-100 p-2 rounded-lg transition-all"
-                            onClick={() => console.log('Delete', user.userId)}
-                        >
-                            <Trash2 className="w-5 h-5" />
-                        </button>
-                    </td>
-                </tr>
-            ))}
-        </tbody>
-    </table>
-</div>
+              <table className="min-w-full bg-white border border-gray-300 rounded-lg shadow-lg">
+                  <thead className="sticky top-0 bg-gray-100">
+                      <tr className="text-gray-700">
+                          <th className="py-3 px-4 text-left">S.no</th>
+                          <th className="py-3 px-4 text-left">Name</th>
+                          <th className="py-3 px-4 text-left">Email</th>
+                          <th className="py-3 px-4 text-left">Role</th>
+                          <th className="py-3 px-4 text-center">Actions</th>
+                      </tr>
+                  </thead>
+                  <tbody>
+                      {filteredUsers?.map((user, index) => (
+                          <tr
+                              key={user.userId}
+                              className="border-t border-gray-200 hover:bg-gray-50 transition-colors duration-150"
+                          >
+                              <td className="py-3 px-4">{index + 1}</td>
+                              {user.role === 'Creator' ? (
+                                <td className="py-3 px-4">
+                                    {user.detailedProfile
+                                        ? `${user.detailedProfile.firstName ?? ''} ${user.detailedProfile.lastName ?? ''}`.trim()
+                                        : ""}
+                                </td>
+                            ) : (
+                                <td className="py-3 px-4">
+                                    {user.detailedProfile?.name ?? ""}
+                                </td>
+                            )}
+                              <td className="py-3 px-4">{user.email}</td>
+                              <td className="py-3 px-4">
+                                <span className="inline-block bg-blue-100 text-blue-800 text-xs font-medium px-3 py-1 rounded-lg">
+                                  {user.role}
+                                </span>
+                              </td>
+                              <td className="py-3 px-4 text-center flex justify-center gap-3">
+                              <button
+                                      className="text-yellow-500 hover:bg-blue-100 p-2 rounded-lg transition-all"
+                                      onClick={() => {
+                                          // Setid(user.userId);
+                                          navigateToTicketHistory(user.userId)}}
+                                  >
+                                      <FileClock className="w-5 h-5" />
+                                  </button>
+                                  <button
+                                      className="text-blue-600 hover:bg-blue-100 p-2 rounded-lg transition-all"
+                                      onClick={() => {
+                                          setUserRole(user.role);
+                                          setSelectedUser(user);
+                                      }}
+                                  >
+                                      <Eye className="w-5 h-5" />
+                                  </button>
+                                  <button
+                                      className="text-green-600 hover:bg-green-100 p-2 rounded-lg transition-all"
+                                      onClick={() => {console.log('Edit', user.userId)
+                                          setIsEditing(true);
+                                          setUserRole(user.role);
+                                          setSelectedUser(user);
+                                      }}
+                                  >
+                                      <Edit className="w-5 h-5" />
+                                  </button>
+                                  <button
+                                      className="text-red-600 hover:bg-red-100 p-2 rounded-lg transition-all"
+                                      onClick={() => console.log('Delete', user.userId)}
+                                  >
+                                      <Trash2 className="w-5 h-5" />
+                                  </button>
+                              </td>
+                          </tr>
+                      ))}
+                  </tbody>
+              </table>
+          </div>
 
 
             {/* User Details Modal */}
@@ -291,7 +293,7 @@ const [role, setRole] = useState(null);
 
 {selectedUser && (
     <div className="fixed top-0 left-0 w-full h-full bg-gray-500 bg-opacity-75 flex items-center justify-center z-50">
-        <div className="bg-white rounded-xl shadow-lg p-8 w-full max-w-4xl">
+        <div className="bg-white rounded-xl shadow-lg p-8 w-full max-w-4xl max-h-[95%] overflow-y-auto">
             <div className="bg-gray-50/60 p-6 rounded-2xl border border-gray-200 shadow-inner">
                 <div className="flex justify-between items-center mb-6">
                     <div className="flex items-center gap-3">

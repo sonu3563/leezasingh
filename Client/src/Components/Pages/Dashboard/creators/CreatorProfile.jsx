@@ -38,15 +38,15 @@ const CreatorProfile = () => {
   if (error) return <div>Error: {error}</div>;
 
   return (
-    <div className="max-w-full mx-auto py-8 px-4 mt-8">
+    <div className="max-w-full mx-auto px-4 ">
     <div className="bg-white bg-opacity-90 backdrop-blur-md p-8 rounded-3xl shadow-2xl border border-gray-200 max-w-full mx-auto space-y-10">
       {/* Profile Header */}
-      <div className="flex items-center gap-6">
+      <div className="flex items-center gap-6 cursor-pointer bg-gray-50/60 p-4 rounded-2xl border border-gray-200 shadow-inner">
         <div className="relative group w-24 h-24">
           <img
             src={profile?.profilePic || defaultprofile}
             alt="Profile"
-            className="w-full h-full rounded-full object-cover border-4 border-white shadow-md"
+            className="w-full h-full rounded-full object-cover border-4 border-white shadow-md cursor-pointer"
           />
           <div className="absolute inset-0 bg-black bg-opacity-40 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition duration-300">
             <label className="cursor-pointer w-10 h-10 relative">
@@ -106,7 +106,7 @@ const CreatorProfile = () => {
               formatData: (data) => {
                 if (!Array.isArray(data)) return '-';
                 return data.map((edu, idx) => (
-                  <div key={idx} className="mb-2">
+                  <div key={idx} className="mb-2 ">
                     <div className="font-semibold">{edu.degreeName}</div>
                     <div>{edu.instituteName}</div>
                     <div>{edu.fieldOfStudy}</div>
@@ -272,8 +272,6 @@ const CreatorProfile = () => {
                 onChange={(e) => handleChange(e, field.key)}
                 className="border border-gray-300 rounded-xl px-4 py-2 text-gray-700 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-400 transition"
               />
-       
-
               )}
             </div>
           ))}

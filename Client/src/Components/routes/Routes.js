@@ -85,7 +85,7 @@ const AppRoutes = () => {
         
     <div className="flex">
 
-    <Sidebar 
+    <Sidebar
   isSidebarOpen={isSidebarOpen}
   toggleSidebar={toggleSidebar}
   setIsSidebarOpen={setIsSidebarOpen}
@@ -102,20 +102,19 @@ const AppRoutes = () => {
 <div className={`flex-1 w-full ${isSidebarOpen ? "ml-72" : "ml-0"} transition-all duration-300 py-2.5 px-4 overflow-hidden`}>
 
       <Routes>
-        <Route
+          <Route
             path="/creator/profile"
             element={<RoleBasedRoute element={<CreatorProfile />} allowedRoles={["creator"]} />}
           />
-<Route
-  path='/Ticket-History/:id?'
-  element={<RoleBasedRoute element={<TicketHistory />} allowedRoles={["creator", "company", "admin"]} />}
-/>
-
-           <Route
+          <Route
+            path='/Ticket-History/:id?'
+            element={<RoleBasedRoute element={<TicketHistory />} allowedRoles={["creator", "company", "admin"]} />}
+          />
+          <Route
             path={`/${Role}/support`}
             element={<RoleBasedRoute element={<Help />} allowedRoles={["creator","company"]} />}
           />
-           <Route
+          <Route
             path="/creator/Creator-Specific-job"
             element={<RoleBasedRoute element={<SpecificRole />} allowedRoles={["creator"]} />}
           />
@@ -123,36 +122,27 @@ const AppRoutes = () => {
             path="/creator/My-Applications"
             element={<RoleBasedRoute element={<AppliedJobs />} allowedRoles={["creator"]} />}
           />
-            <Route
+          <Route
             path={`/${Role}/All-jobs`}
             element={<RoleBasedRoute element={<Alljobs />} allowedRoles={["creator","admin"]} />}
           />
-           <Route
+          <Route
             path="/company/profile"
             element={<RoleBasedRoute element={<CompanyProfile />} allowedRoles={["company"]} />}
           />
-            <Route
+          <Route
             path="/company/postjob"
             element={<RoleBasedRoute element={<Postjobs />} allowedRoles={["company"]} />}
           />
-                 <Route
-  path="/company/manage-job/:jobId"
-  element={<RoleBasedRoute element={<ManageJob />} allowedRoles={["company"]} />}
-/>
-
-
-<Route
+          <Route
+            path="/company/manage-job/:jobId"
+            element={<RoleBasedRoute element={<ManageJob />} allowedRoles={["company"]} />}
+          />
+          <Route
             path="/admin/All-Users"
             element={<RoleBasedRoute element={<Allusers />} allowedRoles={["admin"]} />}
           />
-
-
-
-
-
         </Routes>
-        
-
 
       </div>
     </div>

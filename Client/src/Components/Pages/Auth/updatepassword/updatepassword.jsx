@@ -129,7 +129,7 @@ import {
     };
   
     return (
-      <div className="flex flex-col md:flex-row h-screen text-white">
+      <div className="flex flex-col md:flex-row h-screen justify-center text-white">
         <div className="w-1/3 h-full hidden lg:flex flex-col justify-center items-center bg-[#0C3891] py-5">
           <h1 className="text-4xl font-bold mb-2">Forgot password</h1>
           <p className="text-base mb-6">You can reset your password</p>
@@ -137,8 +137,8 @@ import {
   
         <div className="lg:w-2/3 w-full flex items-center justify-center p-4">
           <div className="bg-white text-black p-10 md:p-6 rounded-lg w-[70%] space-y-4 border-2 shadow-lg">
-            <h2 className="text-[#0C3891] text-2xl font-bold mb-2">Forgot Password</h2>
-            <p className="text-gray-600 mb-6">Enter your email to reset your password.</p>
+            <h2 className="text-[#0C3891] text-xl md:text-2xl font-bold mb-2">Forgot Password</h2>
+            <p className="text-gray-600 mb-6 text-sm">Enter your email to reset your password.</p>
   
             <input
               type="email"

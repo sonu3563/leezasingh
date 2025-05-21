@@ -25,7 +25,7 @@ import Features from "./Features";
 import Creatives from "./Creatives";   //Company
 import Company from "./Company";
 import { Link as ScrollLink } from "react-scroll";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, NavLink, useNavigate } from "react-router-dom";
 import backgroundimage from '../../assest/landingassests/Rectangle 2.jpg';
 import sideimage from '../../assest/landingassests/Group.png';
 import logo from '../../assest/landingassests/objects.png';
@@ -68,17 +68,27 @@ function Hero() {
       <nav className="fixed top-0 left-0 w-full text-black shadow z-50 bg-white">
       <div className="container relative mx-auto flex items-center justify-between px-4 py-4">
       {/* Logo */}
-      <div className="mx-4">
-        <ScrollLink
-          to="home"
-          smooth={true}
-          duration={500}
-          offset={0}
-          className="cursor-pointer text-lg"
+      <div className="flex">
+        {/* Mobile Menu Button */}
+      <button
+        className="md:hidden"
+        onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+      >
+        {isMobileMenuOpen ? (
+          <X className="w-8 h-8" />
+        ) : (
+          <Menu className="w-8 h-8" />
+        )}
+      </button>
+        <NavLink
+          to="/"
+          className="cursor-pointer text-lg mx-3"
         >
           <img src={logo} alt="Logo" className="h-10" />
-        </ScrollLink>
+        </NavLink>
+        
       </div>
+      
 
       {/* Desktop Navigation */}
       <div className="hidden md:flex md:space-x-6 lg:space-x-10 items-center relative">
@@ -86,7 +96,7 @@ function Hero() {
         <div className="relative">
           <button
             onClick={() => setIsSubNavOpen((prev) => !prev)}
-            className="flex items-center space-x-1 text-gray-800 font-medium hover:text-blue-600 transition"
+            className="flex items-center space-x-1 text-gray-800 text-sm font-semibold md:text-md hover:text-blue-600 transition"
           >
             <span>Upcoming Events</span>
             {isSubNavOpen ? (
@@ -99,20 +109,20 @@ function Hero() {
           {/* Dropdown */}
           {isSubNavOpen && (
             <div 
-            ref={dropdownRef}
-            className="absolute top-full left-0 mt-3 w-64 bg-white border border-gray-200 shadow-lg rounded-xl z-50 animate-fadeIn">
-           <ul className="p-4 space-y-2 text-gray-800 font-medium">
-  {Object.entries(eventLinks).map(([event, link]) => (
-    <li key={event}>
-      <Link
-        to={link}
-        className="block px-3 py-2 rounded-md hover:bg-blue-50 hover:text-blue-600 transition-colors"
-      >
-        {event}
-      </Link>
-    </li>
-  ))}
-</ul>
+              ref={dropdownRef}
+              className="absolute top-full left-0 mt-3 w-64 bg-white border border-gray-200 shadow-lg rounded-xl z-50 animate-fadeIn">
+            <ul className="p-4 space-y-2 text-gray-800 font-medium">
+                {Object.entries(eventLinks).map(([event, link]) => (
+                  <li key={event}>
+                    <Link
+                      to={link}
+                      className="block px-3 py-2 rounded-md hover:bg-blue-50 hover:text-blue-600 transition-colors"
+                    >
+                      {event}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
             </div>
           )}
         </div>
@@ -123,7 +133,7 @@ function Hero() {
           smooth={true}
           duration={500}
           offset={-50}
-          className="cursor-pointer hover:text-blue-600 font-medium transition duration-200"
+          className="cursor-pointer hover:text-blue-600 text-sm font-semibold md:text-md transition duration-200"
         >
           Opportunities
         </ScrollLink>
@@ -132,7 +142,7 @@ function Hero() {
           smooth={true}
           duration={500}
           offset={-50}
-          className="cursor-pointer hover:text-blue-600 font-medium transition duration-200"
+          className="cursor-pointer hover:text-blue-600 text-sm font-semibold md:text-md transition duration-200"
         >
           Join as a Companies
         </ScrollLink>
@@ -141,7 +151,7 @@ function Hero() {
           smooth={true}
           duration={500}
           offset={-50}
-          className="cursor-pointer hover:text-blue-600 font-medium transition duration-200"
+          className="cursor-pointer hover:text-blue-600 text-sm font-semibold md:text-md transition duration-200"
         >
           Join as a Creatives
         </ScrollLink>
@@ -151,23 +161,11 @@ function Hero() {
       <div className="mx-4">
         <Link
           to="/signup"
-          className="hidden md:block cursor-pointer text-sm font-semibold py-2 px-6 border text-white bg-[#0C3891] hover:bg-blue-700 rounded-full transition"
+          className=" cursor-pointer text-sm font-semibold py-2 px-6 border text-white bg-[#0C3891] rounded-full transition"
         >
           Signup
         </Link>
       </div>
-
-      {/* Mobile Menu Button */}
-      <button
-        className="md:hidden"
-        onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-      >
-        {isMobileMenuOpen ? (
-          <X className="w-8 h-8" />
-        ) : (
-          <Menu className="w-8 h-8" />
-        )}
-      </button>
     </div>
 
         {/* Mobile Navigation */}

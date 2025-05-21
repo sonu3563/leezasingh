@@ -16,7 +16,7 @@ const Login = () => {
   };
 
   return (
-    <div className="flex flex-col md:flex-row h-screen text-white">
+    <div className="flex flex-col md:flex-row h-screen justify-center text-white">
       {/* Left Section */}
       <div className="w-1/3 h-full hidden lg:flex flex-col justify-center items-center bg-[#0C3891] py-5">
         <h1 className="text-6xl font-bold mb-2">Hello,</h1>
@@ -27,7 +27,7 @@ const Login = () => {
 
       {/* Right Section */}
       <div className="lg:w-2/3 w-full flex items-center justify-center p-4">
-        <div className="bg-white text-black p-8 rounded-lg w-full max-w-2xl shadow-lg">
+        <div className="bg-white text-black p-8 rounded-lg w-full max-w-2xl shadow-xl">
           <form className="space-y-6" onSubmit={handleLogin}>
             <h2 className="text-3xl font-bold text-center text-[#0C3891]">Login</h2>
 
@@ -40,10 +40,6 @@ const Login = () => {
                 onChange={(e) => setEmail(e.target.value)}
                 required
               />
-
-
-
-
 
               <input
                 type="password"

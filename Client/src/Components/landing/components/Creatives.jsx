@@ -15,7 +15,7 @@ export default function CreativesSection() {
       initial="hidden"
       whileInView={"show"}
       viewport={{once:false,amount:0.7}}
-      className="text-center mb-16 text-4xl font-bold">Unlock Endless Possibilities for Creatives and Companies</motion.h2>
+      className="text-center mb-16 text-2xl md:text-4xl font-bold">Unlock Endless Possibilities for Creatives and Companies</motion.h2>
      <div className="flex flex-col lg:flex-row items-center justify-between px-6 lg:px-24 overflow-hidden"> 
        {/* Image with Subtle Depth Effect */}
        <motion.div

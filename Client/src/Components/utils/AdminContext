@@ -1,0 +1,5 @@
+   {user.role === 'Creator' ? (
+    <td className="py-3 px-4">{user.name}</td>
+    ) : (
+    <td className="py-3 px-4">{user.companyName}</td>
+    )}
